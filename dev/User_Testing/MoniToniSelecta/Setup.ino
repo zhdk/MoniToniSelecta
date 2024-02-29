@@ -44,7 +44,7 @@ void  systemSetup() {
   // Use WiFiClientSecure class to create TLS connection
   Serial.println("Set Client Insecure");
   client.setInsecure();
-  // client.setTimeout(10000);
+  client.setTimeout(20000);
 
   // begin filesystem
   if (!fs.begin()) {
