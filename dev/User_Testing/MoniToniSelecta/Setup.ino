@@ -1,19 +1,14 @@
+// _____________Startup Setup Function_____________
+
 void  systemSetup() {
   // Initialize Serial port
   Serial.begin(115200);
   Serial.println();
-
-  // Make sure that the driver chip output is set to LOW when powering on
-  /*
-  control = new ShiftRegister74HC595_NonTemplate(24, DATA_PIN, CLOCK_PIN, LATCH_PIN);
-  assert(control);
-  control->setAllLow();
-  */
   
   // Connect WIFI
   Serial.print("Connecting to ");
   Serial.println(SSID);
-  //WiFi.mode(WIFI_STA);
+  // WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PW);
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -51,9 +46,20 @@ void  systemSetup() {
   client.setInsecure();
   // client.setTimeout(10000);
 
-  //BLESetup("Selecta");  // Don't remove this line!
+  // begin filesystem
+  if (!fs.begin()) {
+    return;
+  }
+  // set filename dayofyear_hourofday_minuteofday.txt
+  String filename = "/" + String(timeinfo.tm_yday) + "_" + String(timeinfo.tm_hour) + "_" + String(timeinfo.tm_min) + ".txt" ;
 
-  Serial.println("Set Pin modes");
+  // set file system to save every log automatically
+  LOG_ATTACH_FS_AUTO(fs, filename, FILE_WRITE);
+
+  LOG_INFO("DEBUG LOG FILE  -  Set Log Level in ESP32");
+
+  // set output pin mode
+  LOG_TRACE("Set Output Pin Modes");
   pinMode(Error_PIN, OUTPUT);
   pinMode(Light_CH, OUTPUT);
   pinMode(Lock_CH, OUTPUT);
@@ -72,25 +78,22 @@ void  systemSetup() {
   pinMode(Item_8_CH, OUTPUT);
   pinMode(Item_9_CH, OUTPUT);
   pinMode(Item_10_CH, OUTPUT); 
-  Serial.println("did outputs"); 
 
+  //turn unused relays off
+  LOG_TRACE("Turn off unused relays");
   relay16Off();
   relay15Off();
 
+  // set input pin modes
+  LOG_TRACE("Set Input Pin Modes");
   pinMode(ButtonTurn_PIN, INPUT_PULLUP);
-  Serial.println("Did Turn");
   pinMode(Door_PIN, INPUT_PULLUP);
-  Serial.println("Did Door");
   pinMode(ButtonOpen_PIN, INPUT_PULLUP);
-  Serial.println("Did Open");
-  
 
-  Serial.println("Setup buttons");
+  LOG_TRACE("Set Button Debounce Intervals");
   buttonTurnSwitch.setPushDebounceInterval(debounceTurnButton);
   doorSwitch.setPushDebounceInterval(debounceDoor);
   buttonOpenSwitch.setPushDebounceInterval(debounceOpenButton);
 
-  Serial.println("");
-  Serial.println("-------------------STARTING------------------");
-  Serial.println("");
+  LOG_INFO("Setup Finished - Ready to use");
 }

@@ -1,30 +1,45 @@
-// MoniToni Vending Machine Integration
+// _____________MoniToni Vending Machine Integration_____________
 
-///////////////////////------ imports ------///////////////////////
+// set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
+#define DEBUGLOG_DEFAULT_LOG_TRACE
+// set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
+// define DEBUGLOG_ENABLE_FILE_LOGGER to enable file logger
+#define DEBUGLOG_ENABLE_FILE_LOGGER
+// define debug preamble
+// default preamble with file & codeline information about debug source
+#define LOG_PREAMBLE LOG_SHORT_FILENAME, LOG_MACRO_APPEND_STR(L.__LINE__), __func__, ":"
+// no preamble
+#define LOG_PREAMBLE ""
+// Uncommenting DEBUGLOG_DISABLE_LOG disables ASSERT and all log (Release Mode)
+// PRINT and PRINTLN are always valid even in Release Mode
+// #define DEBUGLOG_DISABLE_LOG
 
+
+// _____________Library Imports_____________
+
+// Timer.h by Stefan Staub [1.2.1]
 #include <Timer.h>
+
+// ArduinoJson.h by Benoit Blanchon [7.0.3]
 #include <ArduinoJson.h>
+// SPI.h by Arduino [2.1.1] (Arduino IDE Version)
 #include <SPI.h>
+
+// WiFiClientSecure.h by Espressif Systems [2.0.11] (esp32 Boards Version)
 #include <WiFiClientSecure.h>
+
+// debounce.h by Aaron Kimball [0.2.0]
 #include <debounce.h>
 
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
+// DebugLog.h by hideakitai [0.8.3]
+#include <DebugLog.h>
+// SD.h by Arduino, SparkFun [1.2.4]
+#include <SD.h>
 
-///////////////////////------ definitions ------///////////////////////
 
-/*
-#define I2C_SDA 16
-#define I2C_SCL 17
-#define RTC_IRQ 15
-
-// PINS OUT
-#define DATA_PIN 7
-#define CLOCK_PIN 5
-#define LATCH_PIN 6
-*/
+// _____________definitions_____________
+#define fs SD
 
 // PINS IN
 #define Door_PIN 45   //Green
@@ -68,7 +83,7 @@
 #define BLINKS 30 //Error LED Blinks
 
 
-///////////////////////------ variables ------///////////////////////
+// _____________variables_____________
 
 // Logic Variables
 volatile int vendingState = 0; // 0 = Sleep, 1 = Idle, 2 = Turn, 3 = Validate, 4 = Collect, 5 = Finished, 6 = Error
@@ -109,22 +124,9 @@ volatile int globalMinute;
 struct tm timeinfo;
 time_t now;
 
-///////////////////////------ instances ------///////////////////////
+// _____________instances_____________
 
 WiFiClientSecure client;
-
-/*
-BLEService bleService("19B10000-E8F2-537E-4F6C-D104768A1214");  // create service
-
-// create characteristics and allow remote device to read and write
-BLEBoolCharacteristic itemCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
-BLECharacteristic serverTimerCharacteristic("19B10014-E8F2-537E-4F6C-D104768A1214", BLERead, sizeof(int32_t));
-BLECharacteristic stateCharacteristic("19B10018-E8F2-537E-4F6C-D104768A1214", BLEWrite, sizeof(int8_t) * 32);  // this is the maxium length of 32 bytes
-
-byte NoBLECharacteristics = 3;  // this needs to match your total number of Characteristics
-// you need to add all your Characteristics to the following array:
-BLECharacteristic characteristicList[] = { itemCharacteristic, serverTimerCharacteristic, stateCharacteristic };
-*/
 
 Timer timerButtonTurnPress;
 Timer timerButtonOpenPress;
@@ -134,7 +136,7 @@ Timer timerServerTimeout;
 Timer timerDoorOpen;
 
 
-///////////////////////------ setup ------///////////////////////
+// _____________setup_____________
 
 void setup()
 {
@@ -142,7 +144,7 @@ void setup()
 }
 
 
-///////////////////////------ loop ------///////////////////////
+// _____________loop_____________
 
 void loop()
 {

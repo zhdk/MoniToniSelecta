@@ -1,3 +1,5 @@
+// _____________Finite State Machine - Possible States: 0 = Sleep / 1 = Idle / 2 = Turn / 3 = Validate / 4 = Collect / 5 = Finished / 6 = Error_____________
+
 void vending(int state) {
   switch (state){
     // 0 = Sleep

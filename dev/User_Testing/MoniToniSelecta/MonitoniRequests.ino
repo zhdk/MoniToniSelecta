@@ -1,4 +1,4 @@
-///////////////////////------ permissen request ------///////////////////////
+// _____________MoniToni-Server HTTP Requests Functions_____________
 
 bool permissionRequest()
 { 
@@ -78,7 +78,6 @@ bool permissionRequest()
     //timerPurchaseTimeout.stop();
     //timerPurchaseTimeout.start();
     Serial.println(F("Item:"));
-    // Serial.println(doc["HasPermission"].as<bool>());
     Serial.println(doc["Item"].as<int>());
     item = doc["Item"].as<int>();
     // Disconnect

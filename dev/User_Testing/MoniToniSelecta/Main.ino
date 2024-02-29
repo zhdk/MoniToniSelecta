@@ -1,4 +1,7 @@
+// _____________Main Loop_____________
+
 void mainLoop() {
+  //check wifi connection
   while (WiFi.status() != WL_CONNECTED)
   {
     errorOn();
@@ -7,10 +10,13 @@ void mainLoop() {
     Serial.print(".");
   }
 
-  //runBLE();
-  //updateTelemetry();
+  //update hardware inputs
   updateInputs();
+
+  //run state machine
   vending(vendingState);
+
+  //update time
   now = time(nullptr);
   gmtime_r(&now, &timeinfo);
   globalHour = timeinfo.tm_hour;
@@ -21,7 +27,9 @@ void mainLoop() {
   Serial.print("Minute ");
   Serial.println(globalMinute);
   */
-  if (globalHour == 1 && globalMinute == 46 && millis() >= 20000 ) {
+
+  //restart esp daily
+  if (globalHour == 1 && globalMinute == 45 && millis() >= 20000 ) {
     Serial.println("Daily Reset");
     ESP.restart();
   }
