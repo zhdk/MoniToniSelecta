@@ -18,6 +18,9 @@
 #include <SPI.h>
 #include <SD.h>
 
+#define DEBUGLOG_ENABLE_FILE_LOGGER
+#include <DebugLog.h>
+
 #define SD_SPI_SCK_PIN  36
 #define SD_SPI_MISO_PIN 35
 #define SD_SPI_MOSI_PIN 37
@@ -37,6 +40,14 @@ M5Canvas canvas(&CoreS3.Display);
 
 void printf_log(const char *format, ...);
 void println_log(const char *str);
+
+void shorten(String& s) {
+    for (size_t i = 0; i < s.length(); ++i) {
+        if (s[i] == ':')
+            s.setCharAt(i, '_');
+    }
+}
+
 
 void setup() {
     CoreS3.begin();
@@ -94,8 +105,64 @@ void setup() {
     testFileIO(SD, "/test.txt");
     printf_log("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     printf_log("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+
+
+  String filename = "/" + String(__TIME__) + ".txt";
+  shorten(filename);
+
+  // Set file system to save every log automatically
+  LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);  // overwrite file
+  // LOG_ATTACH_FS_AUTO(fs, filename, FILE_APPEND);  // append to file
+
+  // PRINT_FILE and PRINTLN_FILE is not affected by file_level (always visible)
+  // PRINT_FILE and PRINTLN_FILE is not displayed to Serial
+  PRINT_FILE("DebugLog", "can print variable args: ");
+  PRINTLN_FILE(1, 2.2, "three", "=> like this");
+
+  // Apart from the log level to be displayed,
+  // you can set the log level to be saved to a file (Default is DebugLogLevel::LVL_ERROR)
+  // LOG_FILE_SET_LEVEL(DebugLogLevel::LVL_INFO);
+
+  // The default log_leval is DebugLogLevel::LVL_INFO
+  // 0: NONE, 1: ERROR, 2: WARN, 3: INFO, 4: DEBUG, 5: TRACE
+  PRINTLN_FILE("current log level is", (int)LOG_FILE_GET_LEVEL());
+
+  // LOG_XXXX outpus both Serial and File based on log_level and file_level
+  // The default log_leval is DebugLogLevel::LVL_INFO
+  // The default file_leval is DebugLogLevel::LVL_ERROR
+  LOG_ERROR("this is error log");  // printed to both Serial and File
+  LOG_WARN("this is warn log");    // won't be saved but printed
+  LOG_INFO("this is info log");    // won't be saved but printed
+  LOG_DEBUG("this is debug log");  // won't be printed
+  LOG_TRACE("this is trace log");  // won't be printed
+
+  // Log array
+  float arr[3] {1.1, 2.2, 3.3};
+  PRINTLN_FILE("Array can be also printed like this", LOG_AS_ARR(arr, 3));
+
+  #if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L  // Have libstdc++11
+    // Log containers
+    std::vector<int> vs {1, 2, 3};
+    std::deque<float> ds {1.1, 2.2, 3.3};
+    std::map<String, int> ms {{"one", 1}, {"two", 2}, {"three", 3}};
+    PRINTLN_FILE("Containers can also be printed like", vs, ds, ms);
+  #endif
+
+  delay(1000);
+
+  // You can also use assert
+  // If assertion failed, suspend program after prints message and close files
+  int x = 1;
+  // ASSERT(x != 1);
+  // You can also use assert with messages by ASSERTM macro
+  ASSERTM(x != 1, "This always fails");
 }
 void loop() {
+  if (LOG_FILE_IS_OPEN()) {
+      LOG_FILE_CLOSE();
+  }
+  PRINTLN("If DEBUGLOG_DISABLE_LOG is commented out (assert is enabled), does not come here");
+  delay(1000);
 }
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
