@@ -54,7 +54,7 @@
 #define Item_5_CH 10  //Relay 5
 #define Item_6_CH 9  //Relay 6
 #define Item_7_CH 46  //Relay 7
-#define Item_8_CH 3  //Relay 8
+#define Item_8_CH 3  //Relay 8 
 #define Item_9_CH 8  //Relay 9
 #define Item_10_CH 18  //Relay 10
 #define Light_CH 17  //Relay 11
