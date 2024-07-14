@@ -42,7 +42,7 @@ void loop() // run over and over
     Serial.print(i);
     Serial.println(" on");
     CoreS3.Display.fillScreen(WHITE);
-    delay(100);
+    delay(1000);
   }
   
   for(i=0;i<32;i++){
@@ -60,7 +60,7 @@ void loop() // run over and over
     Serial.print(i);
     Serial.println(" off");
     CoreS3.Display.fillScreen(WHITE);
-    delay(100);
+    delay(1000);
   }
 
 

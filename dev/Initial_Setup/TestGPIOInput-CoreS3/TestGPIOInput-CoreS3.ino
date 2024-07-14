@@ -10,7 +10,7 @@ void setup()
 
 void loop() // run over and over
 { 
-  for(i=0;i<1000;i++){  
+  for(int i=0;i<1000;i++){  
     Serial.println(digitalRead(8));
     delay(10);
   }
