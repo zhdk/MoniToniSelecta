@@ -1,5 +1,5 @@
 // _____________MoniToni Vending Machine Integration_____________
-
+// Hardware Iteration: M5CoreS3 Microcontroller & Waveshare 32CH Modbus RTU Relay Board
 
 // set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
 #define DEBUGLOG_DEFAULT_LOG_TRACE
