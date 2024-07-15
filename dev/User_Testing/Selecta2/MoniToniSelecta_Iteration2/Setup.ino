@@ -1,6 +1,17 @@
 // _____________Startup Setup Function_____________
 
 void  systemSetup() {
+  // Initialize M5Core S3
+  CoreS3.begin();
+
+  // SD Card Initialization
+  SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN, SD_SPI_CS_PIN);
+
+  if (!SD.begin(SD_SPI_CS_PIN, SPI, 25000000)) {
+    // Print a message if the SD card initialization fails orif the SD card does not exist.
+    Serial.println("Card failed, or not present");
+  }
+
   // Initialize Serial port
   Serial.begin(115200);
   Serial.println();

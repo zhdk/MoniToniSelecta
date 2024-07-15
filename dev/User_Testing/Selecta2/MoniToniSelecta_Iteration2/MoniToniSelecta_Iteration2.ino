@@ -1,29 +1,18 @@
 // _____________MoniToni Vending Machine Integration_____________
 // Hardware Iteration: M5CoreS3 Microcontroller & Waveshare 32CH Modbus RTU Relay Board
 
-// set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_LOG_TRACE
-// set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
-// define DEBUGLOG_ENABLE_FILE_LOGGER to enable file logger
-#define DEBUGLOG_ENABLE_FILE_LOGGER
-// define debug preamble
-// default preamble with file & codeline information about debug source
-#define LOG_PREAMBLE LOG_SHORT_FILENAME, LOG_MACRO_APPEND_STR(L.__LINE__), __func__, ":"
-// no preamble
-#define LOG_PREAMBLE ""
-// Uncommenting DEBUGLOG_DISABLE_LOG disables ASSERT and all log (Release Mode)
-// PRINT and PRINTLN are always valid even in Release Mode
-// #define DEBUGLOG_DISABLE_LOG
-
 
 // _____________Library Imports_____________
+
+// M5CoreS3.h Libary by Tinyu-Zhao,M5Stack [1.0.0]
+#include <M5CoreS3.h>
 
 // Timer.h by Stefan Staub [1.2.1]
 #include <Timer.h>
 
 // ArduinoJson.h by Benoit Blanchon [7.0.3]
 #include <ArduinoJson.h>
+
 // SPI.h by Arduino [2.1.1] (Arduino IDE Version)
 #include <SPI.h>
 
@@ -40,7 +29,29 @@
 
 
 // _____________definitions_____________
-#define fs SD
+// Debugger
+// set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
+#define DEBUGLOG_DEFAULT_LOG_TRACE
+// set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
+// define DEBUGLOG_ENABLE_FILE_LOGGER to enable file logger
+#define DEBUGLOG_ENABLE_FILE_LOGGER
+// define debug preamble
+// default preamble with file & codeline information about debug source
+#define LOG_PREAMBLE LOG_SHORT_FILENAME, LOG_MACRO_APPEND_STR(L.__LINE__), __func__, ":"
+// no preamble
+#define LOG_PREAMBLE ""
+// Uncommenting DEBUGLOG_DISABLE_LOG disables ASSERT and all log (Release Mode)
+// PRINT and PRINTLN are always valid even in Release Mode
+// #define DEBUGLOG_DISABLE_LOG
+// Uncommenting DEBUGLOG_DISPLAY disables log output on display and only outputs general display messages
+#define DEBUGLOG_DISPLAY
+
+// SD Card
+#define SD_SPI_SCK_PIN  36
+#define SD_SPI_MISO_PIN 35
+#define SD_SPI_MOSI_PIN 37
+#define SD_SPI_CS_PIN   4
 
 // PINS IN
 #define Door_PIN 45   //Green

@@ -36,8 +36,6 @@ void renameFile(fs::FS &fs, const char *path1, const char *path2);
 void deleteFile(fs::FS &fs, const char *path);
 void testFileIO(fs::FS &fs, const char *path);
 
-M5Canvas canvas(&CoreS3.Display);
-
 void printf_log(const char *format, ...);
 void println_log(const char *str);
 
@@ -47,6 +45,8 @@ void shorten(String& s) {
             s.setCharAt(i, '_');
     }
 }
+
+M5Canvas canvas(&CoreS3.Display);
 
 
 void setup() {
@@ -62,12 +62,8 @@ void setup() {
     SPI.begin(SD_SPI_SCK_PIN, SD_SPI_MISO_PIN, SD_SPI_MOSI_PIN, SD_SPI_CS_PIN);
 
     if (!SD.begin(SD_SPI_CS_PIN, SPI, 25000000)) {
-        // Print a message if the SD card initialization
-        // fails orif the SD card does not exist.
-        // 如果SD卡初始化失败或者SD卡不存在，则打印消息.
+        // Print a message if the SD card initialization fails orif the SD card does not exist.
         println_log("Card failed, or not present");
-        while (1)
-            ;
     }
 
     uint8_t cardType = SD.cardType();
