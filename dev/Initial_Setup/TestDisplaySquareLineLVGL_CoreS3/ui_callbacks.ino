@@ -1,14 +1,17 @@
 static void onSpinButtonPressed(lv_event_t *event) {
-  //lv_obj_t *button = lv_event_get_target(event);
-  //lv_state_t buttonState = button->state;
-  //button_state_spin = lv_obj_has_state(button, LV_STATE_PRESSED);
-  Serial.println(lv_event_get_target(event));
+  Serial.println("Spin Button Pressed");
+  //SET STATE OF MACHINE
 }
-/*
+
+static void onSpinButtonReleased(lv_event_t *event) {
+  Serial.println("Spin Button Released");
+  //SET STATE OF MACHINE
+}
+
 static void onOpenButtonPressed(lv_event_t *event) {
-  // lv_obj_t *button = lv_event_get_target(event);
-  // lv_state_t buttonState = button->state;
-  // button_state_open = lv_obj_has_state(button, LV_STATE_PRESSED);
-  Serial.println(event->target);
+  Serial.println("Open Button Pressed");
+  //SET STATE OF MACHINE
 }
-*/
+
+
+
