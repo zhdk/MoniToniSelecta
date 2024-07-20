@@ -5,6 +5,7 @@
 #include <examples/lv_examples.h>
 #include <TFT_eSPI.h>
 #include <M5CoreS3.h>
+#include <ui.h>
 
 #define TFT_HOR_RES   240
 #define TFT_VER_RES   320
@@ -70,7 +71,7 @@ void ui_lv_button_style(void)
 
   lv_style_set_translate_y(&style_pr, 5);
   lv_style_set_shadow_offset_y(&style_pr, 3);
-  lv_style_set_bg_color(&style_pr, lv_color_hex(0x9b9b9b));
+  lv_style_set_bg_color(&style_pr, lv_color_hex(0xb80000));
   lv_style_set_bg_grad_color(&style_pr, lv_color_hex(0xb80000));
 
   /*Add a transition to the outline*/
@@ -145,7 +146,7 @@ void setup()
   auto cfg = M5.config();
   CoreS3.begin(cfg);
 
-  CoreS3.begin(cfg);
+  //CoreS3.begin(cfg);
 
   String LVGL_Arduino = "Hello Arduino! ";
   LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
@@ -166,9 +167,11 @@ void setup()
   lv_indev_set_read_cb(indev, my_touchpad_read);
 
   //lv_example_button_2();
-  ui_lv_button_style();
-  ui_lv_button_col();
+  //ui_lv_button_style();
+  //ui_lv_button_col();
   //ui_lv_button();
+
+  ui_init();
 
   Serial.println( "Setup done" );
 }
