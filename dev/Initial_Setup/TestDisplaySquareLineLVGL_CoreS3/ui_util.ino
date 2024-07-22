@@ -1,3 +1,4 @@
+// _____________ui setup_____________
 #define TFT_HOR_RES   240
 #define TFT_VER_RES   320
 
@@ -46,6 +47,7 @@ void ui_setup() {
 }
 
 
+// Touch Input Device Callback
 //IMPLEMENT ALL STATES
 void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
   auto t = CoreS3.Touch.getDetail();
@@ -59,8 +61,8 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
   }
 }
 
+// LVGL Tick Interface
 void ui_ticker () {
-  // LVGL Tick Interface
   unsigned int tickPeriod = millis() - lastTickMillis;
   lv_tick_inc(tickPeriod);
   lastTickMillis = millis();

@@ -1,9 +1,9 @@
 #include "modbus_crc.h"
 #include "M5CoreS3.h"
 
-unsigned char  cmd[8] = {0x01,0x05,0,0,0,0,0,0}; 
-unsigned int   crc;
-unsigned char i,j;
+unsigned char  cmdModbus[8] = {0x01,0x05,0,0,0,0,0,0}; 
+unsigned int   checksumModbus;
+unsigned char relayNumber,sendByteModbus;
 
 void setup()  
 {
@@ -27,37 +27,37 @@ void setup()
 
 void loop() // run over and over
 { 
-  for(i=0;i<32;i++){
+  for(relayNumber=0;relayNumber<32; relayNumber++){
     CoreS3.Display.fillScreen(RED);
-    cmd[2] = 0;
-    cmd[3] = i;
-    cmd[4] = 0xFF;
-    cmd[5] = 0;
-    crc = ModbusCRC((unsigned char  *)cmd,6);
-    cmd[6] = crc & 0xFF;
-    cmd[7] = crc >> 8;
-    for(j=0;j<8;j++){
-      Serial2.write(cmd[j]);
+    cmdModbus[2] = 0;
+    cmdModbus[3] = relayNumber;
+    cmdModbus[4] = 0xFF;
+    cmdModbus[5] = 0;
+    checksumModbus = ModbusCRC((unsigned char  *)cmdModbus,6);
+    cmdModbus[6] = checksumModbus & 0xFF;
+    cmdModbus[7] = checksumModbus >> 8;
+    for(sendByteModbus=0;sendByteModbus<8;sendByteModbus++){
+      Serial2.write(cmdModbus[sendByteModbus]);
     }
-    Serial.print(i);
+    Serial.print(relayNumber);
     Serial.println(" on");
     CoreS3.Display.fillScreen(WHITE);
     delay(1000);
   }
   
-  for(i=0;i<32;i++){
+  for(relayNumber=0;relayNumber<32;relayNumber++){
     CoreS3.Display.fillScreen(BLUE);
-    cmd[2] = 0;
-    cmd[3] = i;
-    cmd[4] = 0;
-    cmd[5] = 0;
-    crc = ModbusCRC((unsigned char  *)cmd,6);
-    cmd[6] = crc & 0xFF;
-    cmd[7] = crc >> 8;
-    for(j=0;j<8;j++){
-      Serial2.write(cmd[j]);
+    cmdModbus[2] = 0;
+    cmdModbus[3] = relayNumber;
+    cmdModbus[4] = 0;
+    cmdModbus[5] = 0;
+    checksumModbus = ModbusCRC((unsigned char  *)cmdModbus,6);
+    cmdModbus[6] = checksumModbus & 0xFF;
+    cmdModbus[7] = checksumModbus >> 8;
+    for(sendByteModbus=0;sendByteModbus<8;sendByteModbus++){
+      Serial2.write(cmdModbus[sendByteModbus]);
     }
-    Serial.print(i);
+    Serial.print(relayNumber);
     Serial.println(" off");
     CoreS3.Display.fillScreen(WHITE);
     delay(1000);

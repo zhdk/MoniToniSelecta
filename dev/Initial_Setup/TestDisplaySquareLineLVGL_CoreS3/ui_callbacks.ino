@@ -1,3 +1,5 @@
+// _____________ui callbacks_____________
+
 static void onSpinButtonPressed(lv_event_t *event) {
   Serial.println("Spin Button Pressed");
   //SET STATE OF MACHINE

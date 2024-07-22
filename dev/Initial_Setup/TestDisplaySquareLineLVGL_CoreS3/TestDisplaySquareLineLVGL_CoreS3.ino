@@ -20,9 +20,11 @@ void setup()
 
 void loop()
 {
+  //lvgl ui ticker
   ui_ticker();
 
   CoreS3.update();
 
+  //lvgl task handler
   lv_task_handler(); /* let the GUI do its work */
 }
