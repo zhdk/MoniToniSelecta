@@ -41,7 +41,7 @@
 // #define ButtonTurn_PIN 48 
 // #define ButtonOpen_PIN 21 
 
-// PINS OUT
+// RELAY CONFIG
 #define Item_1_CH 1  //Relay 1
 #define Item_2_CH 2  //Relay 2
 #define Item_3_CH 3  //Relay 3
@@ -96,6 +96,8 @@
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 //uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
+#define READINGDELAY 3000
+
 
 // _____________Library Imports_____________
 
@@ -127,7 +129,7 @@
 #include "modbus_crc.h"
 
 // lvgl UI library [CUSTOM CONFIG & MODIFIED TFT_eSPI DRIVER]
-#include <lvgl.h>
+#include <lvgl.h> 
 
 // TFT display library [CUSTOM CONFIG]
 #include <TFT_eSPI.h>
@@ -551,97 +553,6 @@ void itemLock(int item)
 }
 
 
-// void errorOn()
-// {
-//   LOG_TRACE("LOGIC: errorOnState set to true");
-//   errorOnState = true;
-//   digitalWrite(Error_PIN, HIGH);
-// }
-
-// void errorOff()
-// {
-//   LOG_TRACE("LOGIC: errorOnState set to false");
-//   errorOnState = false;
-//   digitalWrite(Error_PIN, LOW);
-// }
-
-
-// void relay15On()
-// {
-//   digitalWrite(Relay15_CH, LOW);
-//   LOG_TRACE("HARDWARE: RELAY15 ON");
-// }
-
-// void relay15Off()
-// {
-//   digitalWrite(Relay15_CH, HIGH);
-//   LOG_TRACE("HARDWARE: RELAY15 OFF");
-// }
-
-// void relay16On()
-// {
-//   digitalWrite(Relay16_CH, LOW);
-//   LOG_TRACE("HARDWARE: RELAY16 ON");
-  
-// }
-
-// void relay16Off()
-// {
-//   digitalWrite(Relay16_CH, HIGH);
-//   LOG_TRACE("HARDWARE: RELAY16 OFF");
-// }
-
-/////////////////////////////////////Based on system Setup included in main file
-// static void buttonTurnSwitchHandler(uint8_t btnId, uint8_t btnState) {
-//   if (btnState == BTN_PRESSED) {
-//     LOG_TRACE("LOGIC: buttonTurnPushedState set to true");
-//     buttonTurnPushedState = true;
-//     LOG_TRACE("TIMER: Button Turn Press stopped");
-//     timerButtonTurnPress.stop();
-//     return;
-//   }
-
-//   // btnState == BTN_OPEN.
-//   LOG_TRACE("LOGIC: buttonTurnPushedState set to false");
-//   buttonTurnPushedState = false;
-//   LOG_TRACE("TIMER: Button Turn Press started");
-//   timerButtonTurnPress.stop();
-//   timerButtonTurnPress.start();
-// }
-
-// static void doorSwitchHandler(uint8_t btnId, uint8_t btnState) {
-//   if (btnState == BTN_OPEN) {
-//     LOG_TRACE("LOGIC: doorOpenState set to true");
-//     doorOpenState = true;
-//     timerDoorOpen.stop();
-//     return;
-//   }
-
-//   // btnState == BTN_PRESSED.
-//   LOG_TRACE("LOGIC: doorOpenState set to false");
-//   doorOpenState = false;
-//   LOG_TRACE("TIMER: Door Open Timer started");
-//   timerDoorOpen.stop();
-//   timerDoorOpen.start();
-// }
-
-// static void buttonOpenSwitchHandler(uint8_t btnId, uint8_t btnState) {
-//   if (btnState == BTN_PRESSED) {
-//     LOG_TRACE("LOGIC: buttonOpenPushedState set to true");
-//     buttonOpenPushedState = true;
-//     LOG_TRACE("TIMER: Button Open Press Timer stopped");
-//     timerButtonOpenPress.stop();
-//     return;
-//   }
-
-//   // btnState == BTN_OPEN.
-//   LOG_TRACE("LOGIC: buttonOpenPushedState set to false");
-//   buttonOpenPushedState = false;
-//   LOG_TRACE("TIMER: Button Open Press Timer started");
-//   timerButtonOpenPress.stop();
-//   timerButtonOpenPress.start();
-// }
-
 
 /////////////////////////////////////Based on system Setup included in main file
 // static Button buttonTurnSwitch(0, buttonTurnSwitchHandler);
@@ -683,7 +594,8 @@ bool permissionRequest()
   // Serial.println(host);
   if (!client.connect("monitoni.zhdk.ch", 443))
   {
-    Serial.println("Connection failed");
+    // Serial.println("Connection failed");
+    LOG_ERROR("ERROR: Connection failed - permission request");
     return 0;
   }
 
@@ -696,8 +608,9 @@ bool permissionRequest()
   client.println(String("Connection: close"));
   if (client.println() == 0)
   {
-    Serial.println(String("Failed to send request"));
+    // Serial.println(String("Failed to send request"));
     client.stop();
+    LOG_ERROR("ERROR: Failed to send request");
     return 0;
   }
   else
@@ -711,9 +624,10 @@ bool permissionRequest()
   // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
   if (strcmp(status + 9, "200 OK") != 0)
   {
-    Serial.print(String("Unexpected response: "));
-    Serial.println(status);
+    // Serial.print(String("Unexpected response: "));
+    LOG_ERROR("Status: ", status);
     client.stop();
+    LOG_ERROR("ERROR: Unexpected response");
     return 0;
   }
 
@@ -724,6 +638,7 @@ bool permissionRequest()
     Serial.println(String("Invalid response"));
     client.stop();
     return 0;
+    LOG_ERROR("ERROR: Invalid response");
   }
 
   // Allocate the JSON document
@@ -738,6 +653,7 @@ bool permissionRequest()
     Serial.print(String("deserializeJson() failed: "));
     Serial.println(error.f_str());
     client.stop();
+    LOG_ERROR("ERROR: Deserialization failed");
     return 0;
   }
 
@@ -762,6 +678,7 @@ bool permissionRequest()
     //timerPurchaseTimeout.stop();
     // Disconnect
     client.stop();
+    LOG_INFO("INFO: No Permission");
     return 0;
   }
 }
@@ -777,7 +694,8 @@ bool completeRequest()
   // Serial.println(host);
   if (!client.connect("monitoni.zhdk.ch", 443))
   {
-    Serial.println("Connection failed");
+    // Serial.println("Connection failed");
+    LOG_ERROR("ERROR: Connection failed - complete request");
     return 0;
   }
 
@@ -790,7 +708,8 @@ bool completeRequest()
   client.println(String("Connection: close"));
   if (client.println() == 0)
   {
-    Serial.println(String("Failed to send request"));
+    // Serial.println(String("Failed to send request"));
+    LOG_ERROR("ERROR: Failed to send complete request");
     client.stop();
     return 0;
   }
@@ -812,10 +731,12 @@ bool completeRequest()
   */
   if (strcmp(status, "HTTP/1.1 201 Created") != 0)
   {
-    Serial.print(String("Unexpected response: "));
-    Serial.println(status);
+    // Serial.print(String("Unexpected response: "));
+    // Serial.println(status);
+    LOG_ERROR("ERROR: Unexpected response");
+    LOG_ERROR("ERROR: Status received: ", status);
     client.stop();
-    Serial.println("UNSUCCESSFUL Request");
+    // Serial.println("UNSUCCESSFUL Request");
     return 0;
   }
 
@@ -823,8 +744,9 @@ bool completeRequest()
   char endOfHeaders[] = "\r\n\r\n";
   if (!client.find(endOfHeaders))
   {
-    Serial.println(String("Invalid response"));
-    Serial.println("UNSUCCESSFUL Request");
+    // Serial.println(String("Invalid response"));
+    // Serial.println("UNSUCCESSFUL Request");
+    LOG_ERROR("ERROR: Invalid response for complete request");
     client.stop();
     return 0;
   }
@@ -833,6 +755,7 @@ bool completeRequest()
   client.stop();
 
   Serial.println("Successful Request");
+  LOG_TRACE("SUCCESS: Complete Request");
 
   return 1;
 }
@@ -850,7 +773,8 @@ bool closeRequest()
   // Serial.println(host);
   if (!client.connect("monitoni.zhdk.ch", 443))
   {
-    Serial.println("Connection failed");
+    // Serial.println("Connection failed");
+    LOG_ERROR("ERROR: Connection failed - close request");
     return 0;
   }
 
@@ -863,7 +787,8 @@ bool closeRequest()
   client.println(String("Connection: close"));
   if (client.println() == 0)
   {
-    Serial.println(String("Failed to send request"));
+    // Serial.println(String("Failed to send request"));
+    LOG_ERROR("ERROR: Failed to send close request");
     client.stop();
     return 0;
   }
@@ -885,10 +810,11 @@ bool closeRequest()
   */
   if (strcmp(status, "HTTP/1.1 201 Created") != 0)
   {
-    Serial.print(String("Unexpected response: "));
-    Serial.println(status);
+    // Serial.print(String("Unexpected response: "));
+    LOG_ERROR("ERROR: Received Status: ", status);
+    LOG_ERROR("ERROR: Unexpected response for close request");
     client.stop();
-    Serial.println("UNSUCCESSFUL Request");
+    // Serial.println("UNSUCCESSFUL Request");
     return 0;
   }
 
@@ -896,8 +822,9 @@ bool closeRequest()
   char endOfHeaders[] = "\r\n\r\n";
   if (!client.find(endOfHeaders))
   {
-    Serial.println(String("Invalid response"));
-    Serial.println("UNSUCCESSFUL Request");
+    // Serial.println(String("Invalid response"));
+    // Serial.println("UNSUCCESSFUL Request");
+    LOG_ERROR("ERROR: Invalid response for close request");
     client.stop();
     return 0;
   }
@@ -905,10 +832,134 @@ bool closeRequest()
   // Disconnect
   client.stop();
 
-  Serial.println("Successful Request");
+  // Serial.println("Successful Request");
+  LOG_TRACE("SUCCESS: Close Request");
 
   return 1;
 }
+
+
+
+// _____________ui setup_____________
+
+void ui_setup() {
+  draw_buf_1 = heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+
+  lv_init();
+
+  disp = lv_tft_espi_create(TFT_HOR_RES, TFT_VER_RES, draw_buf_1, DRAW_BUF_SIZE);
+
+  lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_indev_t *indev = lv_indev_create();
+  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
+  lv_indev_set_read_cb(indev, my_touchpad_read);
+
+  ui_init();
+
+  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonPressed, LV_EVENT_PRESSED, NULL);
+  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonReleased, LV_EVENT_RELEASED, NULL);
+  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonPressed, LV_EVENT_PRESSED, NULL);
+  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonReleased, LV_EVENT_RELEASED, NULL);
+
+  lv_screen_load(ui_StartUpScreen);
+  lv_obj_add_state(ui_StartUpPanel, LV_STATE_CHECKED);
+  lv_obj_remove_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
+
+  // lv_screen_load(ui_MainScreen);
+  //
+  /*
+  lv_screen_load(ui_ValidationScreen);
+  lv_obj_remove_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+  serverRequest_Animation(ui_ValidationStatusPanel, 0);
+  */
+
+  //lv_screen_load(ui_EndScreen);
+
+  // ui updates
+  //lvgl ui ticker
+  ui_ticker();
+  //lvgl task handler
+  lv_task_handler(); /* let the GUI do its work */
+}
+
+
+// Touch Input Device Callback
+//IMPLEMENT ALL STATES
+void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
+  auto t = CoreS3.Touch.getDetail();
+  if (t.state != 0) {
+    data->point.x = TFT_HOR_RES - t.y;
+    data->point.y = t.x;
+    // Serial.printf("state:%d ,x:%d, y:%d\n", t.state, data->point.x, data->point.y);
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+// LVGL Display Interface turn off function
+void turnOffDisplay() {
+  // switch to blank sleep screen
+  displayOn = false;
+}
+// LVGL Display Interface turn on function
+void turnOnDisplay() {
+  // switch to main/idle screen
+  displayOn = true;
+}
+
+// LVGL Tick Interface
+void ui_ticker () {
+  unsigned int tickPeriod = millis() - lastTickMillis;
+  lv_tick_inc(tickPeriod);
+  lastTickMillis = millis();
+}
+
+// _____________ui callbacks_____________
+
+static void onSpinButtonPressed(lv_event_t *event) {
+  // Serial.println("Spin Button Pressed");
+  buttonTurnPushedState = true;
+  // if (vendingState == 1) {
+  //   vendingState = 2; // idle --> turn
+  // }
+}
+
+static void onSpinButtonReleased(lv_event_t *event) {
+  // Serial.println("Spin Button Released");
+  buttonTurnPushedState = false;
+  // vendingState = 1; // turn --> idle
+}
+
+static void onOpenButtonPressed(lv_event_t *event) {
+  // Serial.println("Open Button Pressed");
+  //SET STATE OF MACHINE
+  // if (vendingState == 1) {
+  //   buttonOpenPushedState = true;
+  // //   vendingState = 3; // idle --> validate
+  // }
+  // else {
+  //   buttonOpenPushedState = false;
+  // }
+}
+
+static void onOpenButtonReleased(lv_event_t *event) {
+  //Switch Machine State only once button is released
+  if (vendingState == 1) {
+    buttonOpenPushedState = true;
+  //   vendingState = 3; // idle --> validate
+  }
+  else {
+    buttonOpenPushedState = false;
+  }
+}
+
+
+
+
 
 
 
@@ -1031,6 +1082,7 @@ void vendingIdle() {
 
 void vendingTurn() {
   if (!carrouselUnlockedState) {
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: carrouselUnlockedState false");
     LOG_DEBUG("HARDWARE: Unlock carrousel");
     carrouselUnlock();
@@ -1049,6 +1101,8 @@ void vendingTurn() {
   }
   else {
     LOG_DEBUG("HARDWARE: Lock carrousel");
+    lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, true);  //_GUI spinbutton add clicked state on mainscreen
+    lv_task_handler(); //_GUI ui handler
     if (carrouselUnlockedState) {
       carrouselLock();
     }
@@ -1058,6 +1112,8 @@ void vendingTurn() {
     if (motorOnState) {
       motorOff();
     }
+    lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, false); //_GUI spinbutton remove clicked state on mainscreen
+    lv_task_handler(); //_GUI ui handler
     //carrouselLock(); -- NOTE: double and not necessary?
     timerSleep.stop();
     timerSleep.start();
@@ -1072,6 +1128,16 @@ void vendingTurn() {
 void vendingValidate() {
   // Server Timeout
   if (timerServerTimeout.read() > ServerTimeout) {
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    lv_screen_load(ui_EndScreen);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: Server Timeout Timer larger then ServerTimeout");
     timerServerTimeout.stop();
     LOG_DEBUG("TIMER: Server Timeout Timer stopped");
@@ -1087,14 +1153,21 @@ void vendingValidate() {
 
   // Call permissionRequest-function when there is no acitve Transaction
   if (!transactionActive) {
+    //_GUI Validation Status Label on ValidationScreen
+    //_GUI hide UserActionPanel on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is false");
+    LOG_INFO("LOGIC: Starting Permission Request");
     permissionRequest();
     LOG_DEBUG("LOGIC: call permissionRequest");
     requestActive = true;
     LOG_DEBUG("LOGIC: requestActive set to true");
+    return;
   }
   // Active Transaction --> Stop timerServerTimeout, Set logic variables & switch State
   else if(transactionActive) {
+    //_GUI Access Granted Status Label on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is true");
     timerServerTimeout.stop();
     LOG_DEBUG("TIMER: Server Timeout Timer stopped");
@@ -1109,7 +1182,11 @@ void vendingValidate() {
 
 void vendingCollect(){
   //if (timerPurchaseTimeout.read() > PurchaseTimeoutDELAY) { -- NOTE: Purchase Timeout handled through MoniToni --> timerPurchaseTimeout not necessary
-  if (!permissionRequest()) {
+  // __NUNU__ if (!permissionRequest()) {
+  if (!permission) {
+    //_GUI Denied Status Label on EndScreen
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: permissionRequest returns false");
     //timerPurchaseTimeout.stop();  -- NOTE: see previous note
     transactionActive = false;
@@ -1127,6 +1204,10 @@ void vendingCollect(){
   // -- NOTE: if statement to check permissionRequest might not be needed --> permissionRequest already triggered in previous state
 
   if (!itemUnlockedState && !doorOpenState) {
+    //_GUI Door Open Status Label on ValidationScreen
+    //_GUI show UserActionPanel on ValidationScreen
+    //_GUI User Open Action Label on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
     LOG_DEBUG("HARDWARE: Unlock Item: " + item);
     itemUnlock(item);
@@ -1136,6 +1217,9 @@ void vendingCollect(){
   }
 
   if (doorOpenState && transactionActive) {
+    //_GUI Door Open Status Label on ValidationScreen
+    //_GUI User Close Action Label on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState && transactionActive are true");
     delay(openDoorDELAY);
     LOG_TRACE("HARDWARE: openDoorDELAY");
@@ -1157,7 +1241,14 @@ void vendingCollect(){
       LOG_INFO("STATE: Switching to Finished State");
       return;
     }
+    else {
+      LOG_ERROR("LOGIC: completeRequest returns false");
+      //_NUNU_ check logic flow -> if completeRequest returns false
+    }
     if (timerServerTimeout.read() > ServerTimeout) {
+      //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+      lv_task_handler(); //_GUI ui handler
+      CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
       LOG_TRACE("LOGIC: Server Timeout Timer greater than ServerTimeout");
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
@@ -1171,6 +1262,9 @@ void vendingCollect(){
 
 void vendingFinished() {
   if (timerDoorOpen.read() > DoorOpenSireneDELAY) {
+    //_GUI Door Open Status Label on ValidationScreen
+    //_GUI User Close Action Label on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: Door Open Timer greater than DoorOpenSireneDELAY");
     LOG_DEBUG("HARDWARE: Turn Sirene On");
     if (!sireneOnState) {
@@ -1181,6 +1275,9 @@ void vendingFinished() {
   }
 
   if (!doorOpenState) {
+    //_GUI Door Close Status Label on ValidationScreen
+    //_GUI hide UserActionPanel on ValidationScreen
+    lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState is false");
     LOG_DEBUG("HARDWARE: Turn sirene off");
     if (sireneOnState) {
@@ -1189,7 +1286,11 @@ void vendingFinished() {
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
     if ( closeRequest() ) {
-      LOG_TRACE("LOGIC: closeRequest returned false");
+      //_GUI CompleteTransactionLabel on EndingScreen
+      //_GUI ThankYouLabel on EndingScreen
+      lv_task_handler(); //_GUI ui handler
+      CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
+      LOG_TRACE("LOGIC: closeRequest returned true");
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
       timerSleep.stop();
@@ -1200,6 +1301,9 @@ void vendingFinished() {
       return;
     }
     if (timerServerTimeout.read() > ServerTimeout) {
+      //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+      lv_task_handler(); //_GUI ui handler
+      CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
       LOG_TRACE("LOGIC: Server Timeout Timer greater than ServerTimeout");
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
@@ -1240,20 +1344,11 @@ void vendingError() {
   }
   
 
-  // // Error LED
-  // LOG_DEBUG("ERROR: Flashing Error Light");
-  // for (int i = 0; i < BLINKS; i++) {
-  //   errorOn();
-  //   delay(200);
-  //   errorOff();
-  //   delay(100);
-  // }
-
   transactionActive = false;
   LOG_DEBUG("LOGIC: requestActive set to false");
   requestActive = false;
   LOG_DEBUG("LOGIC: vendingActive set to false");
-  vendingState = 1; // Sleep
+  vendingState = 1; // Idle
   LOG_INFO("STATE: Switching to Sleep State");
 }
 
@@ -1301,6 +1396,13 @@ void vending(int state) {
 // _____________Main Loop_____________
 
 void mainLoop() {
+  // ui updates
+  //lvgl ui ticker
+  ui_ticker();
+  //lvgl task handler
+  lv_task_handler(); /* let the GUI do its work */
+
+
   //check wifi connection
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -1313,17 +1415,9 @@ void mainLoop() {
   // Update M5CoreS3 base functions
   CoreS3.update();
 
-  // ui updates
-  //lvgl ui ticker
-  ui_ticker();
-  //lvgl task handler
-  lv_task_handler(); /* let the GUI do its work */
-
   //update hardware inputs
   updateInputs();
 
-  //run state machine
-  vending(vendingState);
 
   //update time
   now = time(nullptr);
@@ -1337,128 +1431,13 @@ void mainLoop() {
   Serial.println(globalMinute);
   */
 
+  //run state machine
+  vending(vendingState);
+
   //restart esp daily
   if (globalHour == 1 && globalMinute == 45 && millis() >= 20000 ) {
     Serial.println("Daily Reset");
     ESP.restart();
-  }
-}
-
-
-// _____________ui setup_____________
-
-void ui_setup() {
-  draw_buf_1 = heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-
-  lv_init();
-
-  disp = lv_tft_espi_create(TFT_HOR_RES, TFT_VER_RES, draw_buf_1, DRAW_BUF_SIZE);
-
-  lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
-
-  lv_indev_t *indev = lv_indev_create();
-  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
-  lv_indev_set_read_cb(indev, my_touchpad_read);
-
-  ui_init();
-
-  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonPressed, LV_EVENT_PRESSED, NULL);
-  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonReleased, LV_EVENT_RELEASED, NULL);
-  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonPressed, LV_EVENT_PRESSED, NULL);
-  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonReleased, LV_EVENT_RELEASED, NULL);
-
-  lv_screen_load(ui_StartUpScreen);
-  lv_obj_add_state(ui_StartUpPanel, LV_STATE_CHECKED);
-  lv_obj_remove_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
-
-  // lv_screen_load(ui_MainScreen);
-
-  /*
-  lv_screen_load(ui_ValidationScreen);
-  lv_obj_remove_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
-  serverRequest_Animation(ui_ValidationStatusPanel, 0);
-  */
-
-  //lv_screen_load(ui_EndScreen);
-
-  // ui updates
-  //lvgl ui ticker
-  ui_ticker();
-  //lvgl task handler
-  lv_task_handler(); /* let the GUI do its work */
-}
-
-
-// Touch Input Device Callback
-//IMPLEMENT ALL STATES
-void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
-  auto t = CoreS3.Touch.getDetail();
-  if (t.state != 0) {
-    data->point.x = TFT_HOR_RES - t.y;
-    data->point.y = t.x;
-    // Serial.printf("state:%d ,x:%d, y:%d\n", t.state, data->point.x, data->point.y);
-    data->state = LV_INDEV_STATE_PRESSED;
-  } else {
-    data->state = LV_INDEV_STATE_RELEASED;
-  }
-}
-
-// LVGL Display Interface turn off function
-void turnOffDisplay() {
-  // switch to blank sleep screen
-  displayOn = false;
-}
-// LVGL Display Interface turn on function
-void turnOnDisplay() {
-  // switch to main/idle screen
-  displayOn = true;
-}
-
-// LVGL Tick Interface
-void ui_ticker () {
-  unsigned int tickPeriod = millis() - lastTickMillis;
-  lv_tick_inc(tickPeriod);
-  lastTickMillis = millis();
-}
-
-// _____________ui callbacks_____________
-
-static void onSpinButtonPressed(lv_event_t *event) {
-  // Serial.println("Spin Button Pressed");
-  buttonTurnPushedState = true;
-  // if (vendingState == 1) {
-  //   vendingState = 2; // idle --> turn
-  // }
-}
-
-static void onSpinButtonReleased(lv_event_t *event) {
-  // Serial.println("Spin Button Released");
-  buttonTurnPushedState = false;
-  // vendingState = 1; // turn --> idle
-}
-
-static void onOpenButtonPressed(lv_event_t *event) {
-  // Serial.println("Open Button Pressed");
-  //SET STATE OF MACHINE
-  // if (vendingState == 1) {
-  //   buttonOpenPushedState = true;
-  // //   vendingState = 3; // idle --> validate
-  // }
-  // else {
-  //   buttonOpenPushedState = false;
-  // }
-}
-
-static void onOpenButtonReleased(lv_event_t *event) {
-  //Switch Machine State only once button is released
-  if (vendingState == 1) {
-    buttonOpenPushedState = true;
-  //   vendingState = 3; // idle --> validate
-  }
-  else {
-    buttonOpenPushedState = false;
   }
 }
 
