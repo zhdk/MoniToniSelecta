@@ -146,7 +146,7 @@
 // _____________variables_____________
 
 // Logic Variables
-volatile int vendingState = 0; // 0 = Sleep, 1 = Idle, 2 = Turn, 3 = Validate, 4 = Collect, 5 = Finished, 6 = Error
+volatile int vendingState = 1; // 0 = Sleep, 1 = Idle, 2 = Turn, 3 = Validate, 4 = Collect, 5 = Finished, 6 = Error
 
 volatile int activeScreen = 0; //  0 = StartUpScreen, 1 = MainScreen, 2 = ValidationScreen, 3 = EndScreen, 4 = SleepScreen, 5 = ErrorScreen
 
@@ -177,7 +177,7 @@ const int port = 443;
 String url_permission = "/api/vending/permission";
 String url_complete = "/api/vending/complete";
 String url_close = "/api/vending/close";
-String monitoni_terminal = "Monitoni-Terminal: oFX3HzsH9GjR8lrGNWT6L3hNGqTrGtc1";
+String monitoni_terminal = TOKEN;
 
 volatile bool permission = false;
 volatile bool completed = false;
@@ -313,6 +313,9 @@ void  systemSetup() {
   {
     delay(500);
     Serial.print(".");
+    lv_label_set_text(ui_SetupLabel, "Trying to connect to WiFi");
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
   }
   Serial.println("");
   Serial.println("WiFi connected");
@@ -967,6 +970,7 @@ static void onOpenButtonReleased(lv_event_t *event) {
 
 
 void vendingSleep() {
+  //_GUI SCREEN OFF
   if (timerSleep.state() == RUNNING){
     LOG_TRACE("HARDWARE: Stop Sleep Timer");
     timerSleep.stop();
@@ -1082,6 +1086,7 @@ void vendingIdle() {
 
 void vendingTurn() {
   if (!carrouselUnlockedState) {
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: carrouselUnlockedState false");
     LOG_DEBUG("HARDWARE: Unlock carrousel");
@@ -1102,6 +1107,7 @@ void vendingTurn() {
   else {
     LOG_DEBUG("HARDWARE: Lock carrousel");
     lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, true);  //_GUI spinbutton add clicked state on mainscreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     if (carrouselUnlockedState) {
       carrouselLock();
@@ -1113,6 +1119,7 @@ void vendingTurn() {
       motorOff();
     }
     lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, false); //_GUI spinbutton remove clicked state on mainscreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     //carrouselLock(); -- NOTE: double and not necessary?
     timerSleep.stop();
@@ -1136,6 +1143,7 @@ void vendingValidate() {
     lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: Server Timeout Timer larger then ServerTimeout");
@@ -1155,6 +1163,7 @@ void vendingValidate() {
   if (!transactionActive) {
     //_GUI Validation Status Label on ValidationScreen
     //_GUI hide UserActionPanel on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is false");
     LOG_INFO("LOGIC: Starting Permission Request");
@@ -1167,6 +1176,7 @@ void vendingValidate() {
   // Active Transaction --> Stop timerServerTimeout, Set logic variables & switch State
   else if(transactionActive) {
     //_GUI Access Granted Status Label on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is true");
     timerServerTimeout.stop();
@@ -1185,6 +1195,7 @@ void vendingCollect(){
   // __NUNU__ if (!permissionRequest()) {
   if (!permission) {
     //_GUI Denied Status Label on EndScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: permissionRequest returns false");
@@ -1207,6 +1218,7 @@ void vendingCollect(){
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI show UserActionPanel on ValidationScreen
     //_GUI User Open Action Label on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
     LOG_DEBUG("HARDWARE: Unlock Item: " + item);
@@ -1219,6 +1231,7 @@ void vendingCollect(){
   if (doorOpenState && transactionActive) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState && transactionActive are true");
     delay(openDoorDELAY);
@@ -1264,6 +1277,7 @@ void vendingFinished() {
   if (timerDoorOpen.read() > DoorOpenSireneDELAY) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: Door Open Timer greater than DoorOpenSireneDELAY");
     LOG_DEBUG("HARDWARE: Turn Sirene On");
@@ -1277,6 +1291,7 @@ void vendingFinished() {
   if (!doorOpenState) {
     //_GUI Door Close Status Label on ValidationScreen
     //_GUI hide UserActionPanel on ValidationScreen
+    ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState is false");
     LOG_DEBUG("HARDWARE: Turn sirene off");
@@ -1288,6 +1303,7 @@ void vendingFinished() {
     if ( closeRequest() ) {
       //_GUI CompleteTransactionLabel on EndingScreen
       //_GUI ThankYouLabel on EndingScreen
+      ui_ticker();
       lv_task_handler(); //_GUI ui handler
       CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
       LOG_TRACE("LOGIC: closeRequest returned true");
@@ -1302,6 +1318,7 @@ void vendingFinished() {
     }
     if (timerServerTimeout.read() > ServerTimeout) {
       //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+      ui_ticker();
       lv_task_handler(); //_GUI ui handler
       CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
       LOG_TRACE("LOGIC: Server Timeout Timer greater than ServerTimeout");
@@ -1409,7 +1426,8 @@ void mainLoop() {
     // errorOn();
     delay(500);
     // errorOff();
-    Serial.print(".");
+    // Serial.print(".");
+    //_GUI WIFI ERROR MESSAGE
   }
 
   // Update M5CoreS3 base functions
