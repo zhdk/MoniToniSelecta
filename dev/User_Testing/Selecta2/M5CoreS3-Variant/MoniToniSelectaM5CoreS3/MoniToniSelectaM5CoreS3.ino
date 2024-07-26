@@ -12,12 +12,11 @@
 #define DEBUGLOG_DEFAULT_LOG_LEVEL_DEBUG
 
 // set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_ERROR
 
-// define debug preamble
+// choose one of the two debug preambles
 // default preamble with file & codeline information about debug source
-// #define LOG_PREAMBLE LOG_SHORT_FILENAME, LOG_MACRO_APPEND_STR(L.__LINE__), __func__, ":"
-
+//  #define LOG_PREAMBLE LOG_SHORT_FILENAME, LOG_MACRO_APPEND_STR(L.__LINE__), __func__, ":"
 // no preamble
 #define LOG_PREAMBLE ""
 
@@ -74,7 +73,7 @@
 #define DoorOpenSireneDELAY 10000
 #define ServerTimeout 3000
 // #define MotorTurnDELAY 2500
-#define MotorTurnDELAY 0
+#define MotorTurnDELAY 2000
 #define BluetoothSetupDelay 15000
 
 // Proximity Sensor
@@ -96,7 +95,7 @@
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 //uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
-#define READINGDELAY 3000
+#define READINGDELAY 8000
 
 
 // _____________Library Imports_____________
@@ -1137,12 +1136,12 @@ void vendingValidate() {
   if (timerServerTimeout.read() > ServerTimeout) {
     //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
     lv_screen_load(ui_EndScreen);
-    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
