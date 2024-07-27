@@ -73,18 +73,19 @@
 #define DoorOpenSireneDELAY 10000
 #define ServerTimeout 3000
 // #define MotorTurnDELAY 2500
-#define MotorTurnDELAY 2000
+#define MotorTurnDELAY 2400
 #define BluetoothSetupDelay 15000
+
 
 // Proximity Sensor
 #define ProximityThreshold 3
+
 
 // Speaker Volume [0 - 255]
 #define SpeakerVolume 50
 // Speaker Frequency [in Hz]
 #define SpeakerFrequency 1000
 
-// #define BLINKS 30 //Error LED Blinks
 
 // Graphics
 // Screen Resolution
@@ -96,6 +97,36 @@
 //uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 #define READINGDELAY 8000
+
+
+// LED Mapping
+#define NUMPIXELS 160
+
+#define LED_LEVEL_1_START 0
+#define LED_LEVEL_1_END 15
+#define LED_LEVEL_2_START 16
+#define LED_LEVEL_2_END 31
+#define LED_LEVEL_3_START 32
+#define LED_LEVEL_3_END 47
+#define LED_LEVEL_4_START 48
+#define LED_LEVEL_4_END 63
+#define LED_LEVEL_5_START 64
+#define LED_LEVEL_5_END 79
+#define LED_LEVEL_6_START 80
+#define LED_LEVEL_6_END 95
+#define LED_LEVEL_7_START 96
+#define LED_LEVEL_7_END 111
+#define LED_LEVEL_8_START 112
+#define LED_LEVEL_8_END 127
+#define LED_LEVEL_9_START 128
+#define LED_LEVEL_9_END 143
+#define LED_LEVEL_10_START 144
+#define LED_LEVEL_10_END 159
+
+#define LEDMAPPING_LEVELS [10] = {{LED_LEVEL_1_START, LED_LEVEL_1_END}, {LED_LEVEL_2_START, LED_LEVEL_2_END}, {LED_LEVEL_3_START, LED_LEVEL_3_END}, {LED_LEVEL_4_START, LED_LEVEL_4_END}, {LED_LEVEL_5_START, LED_LEVEL_5_END}, {LED_LEVEL_6_START, LED_LEVEL_6_END}, {LED_LEVEL_7_START, LED_LEVEL_7_END}, {LED_LEVEL_8_START, LED_LEVEL_8_END}, {LED_LEVEL_9_START, LED_LEVEL_9_END}, {LED_LEVEL_10_START, LED_LEVEL_10_END}}
+
+#define LED_COLORS [3] = {{0, 0, 0}, {0, 255, 0}, {255, 0, 0}} // 0 = OFF, 1 = GREEN, 2 = RED
+
 
 
 // _____________Library Imports_____________
@@ -582,6 +613,33 @@ static void updateInputs() {
   // buttonOpenSwitch.update(digitalRead(ButtonOpen_PIN));
 }
 
+static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycles) {
+  // _LEDBLINK blink LEDs in color w/ speed and cycles
+
+}
+
+static void ledStatic (int firstLED, int lastLED, int color) {
+  // _LEDSTATIC set LEDs in color
+}
+
+static void ledSetWhite () {
+  //_LEDWHITE turn on all white
+}
+
+
+static void ledSetOFF () {
+  //_LED turn all off
+  ledStatic(0, NUMPIXELS - 1, 0);
+}
+
+static void ledSetGreen (int itemLED, bool blink) {
+  if (blink) {
+    ledBlink(LEDMAPPING_LEVELS[itemLED + 1][0], LEDMAPPING_LEVELS[itemLED + 1][1], 2, 100, 5);
+  }
+  {
+    ledStatic(LEDMAPPING_LEVELS[itemLED + 1][0], LEDMAPPING_LEVELS[itemLED + 1][1], 2);   //_LEDGREEN turn on green on itemLED
+  } 
+}
 
 
 // _____________MoniToni-Server HTTP Requests Functions_____________
