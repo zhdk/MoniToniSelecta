@@ -65,9 +65,9 @@
 #define CarrouselDELAY 0
 #define UserInputDELAY 5000
 #define SleepDELAY 120000
-#define debounceTurnButton 50
+#define debounceTurnButton 1
 #define debounceOpenButton 1
-#define debounceDoor 100
+#define debounceDoor 10
 #define openDoorDELAY 500
 #define PurchaseTimeoutDELAY 60000
 #define DoorOpenSireneDELAY 10000
@@ -593,16 +593,7 @@ void itemLock(int item)
 // static Button buttonOpenSwitch(1, buttonOpenSwitchHandler);
 
 
-static void updateInputs() {
-  // update proximity sensor
-  read_ps_value  = CoreS3.Ltr553.getPsValue();
-  if (read_ps_value > ProximityThreshold) {
-    proximityTriggered = true;
-  }
-  else {
-    proximityTriggered = false;
-  }
-
+static void updateSwitchInputs() {
   // update() will call buttonHandler() if PIN transitions to a new state and stays there
   // for multiple reads over 25+ ms.
   if (vendingState == 4 || vendingState == 5) {
@@ -611,6 +602,17 @@ static void updateInputs() {
   }
   // buttonTurnSwitch.update(digitalRead(ButtonTurn_PIN));
   // buttonOpenSwitch.update(digitalRead(ButtonOpen_PIN));
+}
+
+static void updateProximity() {
+  // update proximity sensor
+  read_ps_value  = CoreS3.Ltr553.getPsValue();
+  if (read_ps_value > ProximityThreshold) {
+    proximityTriggered = true;
+  }
+  else {
+    proximityTriggered = false;
+  }
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycles) {
@@ -1060,6 +1062,8 @@ void vendingSleep() {
     }
   }
 
+  updateProximity();
+
   if (proximityTriggered) {
     LOG_TRACE("LOGIC: Proximity Sensor triggered");
     timerSleep.stop();
@@ -1067,6 +1071,7 @@ void vendingSleep() {
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
     LOG_INFO("STATE: Switching to Idle State");
+    proximityTriggered = false;
     return;
   }
 }
@@ -1248,6 +1253,9 @@ void vendingValidate() {
 
 
 void vendingCollect(){
+  //update Hardware - Switch inputs
+  updateSwitchInputs();
+  
   //if (timerPurchaseTimeout.read() > PurchaseTimeoutDELAY) { -- NOTE: Purchase Timeout handled through MoniToni --> timerPurchaseTimeout not necessary
   // __NUNU__ if (!permissionRequest()) {
   if (!permission) {
@@ -1331,6 +1339,9 @@ void vendingCollect(){
 
 
 void vendingFinished() {
+  //update Hardware - Switch inputs
+  updateSwitchInputs();
+
   if (timerDoorOpen.read() > DoorOpenSireneDELAY) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
@@ -1489,9 +1500,6 @@ void mainLoop() {
 
   // Update M5CoreS3 base functions
   CoreS3.update();
-
-  //update hardware inputs
-  updateInputs();
 
 
   //update time
