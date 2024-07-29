@@ -468,6 +468,8 @@ void  systemSetup() {
   }
   // stop output sound.
   CoreS3.Speaker.stop();
+
+  lv_screen_load(ui_MainScreen);  
 }
 
 
@@ -1265,6 +1267,7 @@ void vendingSleep() {
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
     LOG_INFO("STATE: Switching to Idle State");
+    lv_screen_load(ui_MainScreen);
     proximityTriggered = false;
     return;
   }
@@ -1379,6 +1382,7 @@ void vendingTurn() {
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
     LOG_INFO("STATE: Switching to Idle State");
+    lv_screen_load(ui_MainScreen);
     return;
   }
 }
@@ -1418,6 +1422,20 @@ void vendingValidate() {
   if (!transactionActive) {
     //_GUI Validation Status Label on ValidationScreen
     //_GUI hide UserActionPanel on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_remove_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is false");
@@ -1431,6 +1449,22 @@ void vendingValidate() {
   // Active Transaction --> Stop timerServerTimeout, Set logic variables & switch State
   else if(transactionActive) {
     //_GUI Access Granted Status Label on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is true");
@@ -1476,6 +1510,22 @@ void vendingCollect(){
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI show UserActionPanel on ValidationScreen
     //_GUI User Open Action Label on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
@@ -1489,6 +1539,22 @@ void vendingCollect(){
   if (doorOpenState && transactionActive) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState && transactionActive are true");
@@ -1518,6 +1584,16 @@ void vendingCollect(){
     }
     if (timerServerTimeout.read() > ServerTimeout) {
       //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+      if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+      }
+      lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
       lv_task_handler(); //_GUI ui handler
       CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
       LOG_TRACE("LOGIC: Server Timeout Timer greater than ServerTimeout");
@@ -1538,6 +1614,22 @@ void vendingFinished() {
   if (timerDoorOpen.read() > DoorOpenSireneDELAY) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: Door Open Timer greater than DoorOpenSireneDELAY");
@@ -1552,6 +1644,22 @@ void vendingFinished() {
   if (!doorOpenState) {
     //_GUI Door Close Status Label on ValidationScreen
     //_GUI hide UserActionPanel on ValidationScreen
+    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+
+    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_remove_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState is false");
@@ -1564,6 +1672,16 @@ void vendingFinished() {
     if ( closeRequest() ) {
       //_GUI CompleteTransactionLabel on EndingScreen
       //_GUI ThankYouLabel on EndingScreen
+      if (activeScreen != 3) {
+        lv_screen_load(ui_EndScreen);
+        activeScreen = 3;
+      }
+      lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
       CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
@@ -1575,10 +1693,21 @@ void vendingFinished() {
       LOG_DEBUG("TIMER: Sleep Timer started");
       vendingState = 1; // Idle
       LOG_INFO("STATE: Switching to Idle State");
+      lv_screen_load(ui_MainScreen);
       return;
     }
     if (timerServerTimeout.read() > ServerTimeout) {
       //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+      if (activeScreen != 3) {
+        lv_screen_load(ui_EndScreen);
+        activeScreen = 3;
+      }
+      lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
       CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
@@ -1627,6 +1756,7 @@ void vendingError() {
   requestActive = false;
   LOG_DEBUG("LOGIC: vendingActive set to false");
   vendingState = 1; // Idle
+  lv_screen_load(ui_MainScreen);
   LOG_INFO("STATE: Switching to Sleep State");
 }
 
