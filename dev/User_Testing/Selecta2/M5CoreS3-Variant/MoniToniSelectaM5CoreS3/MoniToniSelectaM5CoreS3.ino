@@ -123,9 +123,6 @@
 #define LED_LEVEL_10_START 144
 #define LED_LEVEL_10_END 159
 
-#define LEDMAPPING_LEVELS [10] = {{LED_LEVEL_1_START, LED_LEVEL_1_END}, {LED_LEVEL_2_START, LED_LEVEL_2_END}, {LED_LEVEL_3_START, LED_LEVEL_3_END}, {LED_LEVEL_4_START, LED_LEVEL_4_END}, {LED_LEVEL_5_START, LED_LEVEL_5_END}, {LED_LEVEL_6_START, LED_LEVEL_6_END}, {LED_LEVEL_7_START, LED_LEVEL_7_END}, {LED_LEVEL_8_START, LED_LEVEL_8_END}, {LED_LEVEL_9_START, LED_LEVEL_9_END}, {LED_LEVEL_10_START, LED_LEVEL_10_END}}
-
-#define LED_COLORS [3] = {{0, 0, 0}, {0, 255, 0}, {255, 0, 0}} // 0 = OFF, 1 = GREEN, 2 = RED
 
 
 
@@ -224,6 +221,26 @@ unsigned long lastTickMillis = 0;   // Tick Variable for
 lv_display_t * disp;                //display instance
 
 uint16_t read_ps_value;   // Porximity Sensor Value
+
+
+const int LEDMAPPING_LEVELS[10][2] = {
+  {LED_LEVEL_1_START, LED_LEVEL_1_END},
+  {LED_LEVEL_2_START, LED_LEVEL_2_END},
+  {LED_LEVEL_3_START, LED_LEVEL_3_END},
+  {LED_LEVEL_4_START, LED_LEVEL_4_END},
+  {LED_LEVEL_5_START, LED_LEVEL_5_END},
+  {LED_LEVEL_6_START, LED_LEVEL_6_END},
+  {LED_LEVEL_7_START, LED_LEVEL_7_END},
+  {LED_LEVEL_8_START, LED_LEVEL_8_END},
+  {LED_LEVEL_9_START, LED_LEVEL_9_END},
+  {LED_LEVEL_10_START, LED_LEVEL_10_END}
+};
+
+const int LED_COLORS[3][3] = {
+  {0, 0, 0},    // OFF
+  {0, 255, 0},  // GREEN
+  {255, 0, 0}   // RED
+};
 
 
 // unsigned char  cmdModbus[8] = {0x01,0x05,0,0,0,0,0,0}; 
@@ -330,10 +347,6 @@ void  systemSetup() {
   }
 
 
-  // set file system to save every log automatically
-  LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);
-  LOG_INFO("DEBUG LOG FILE  -  Set Log Level in Definitions");
-
 
   //Initialized Serial port for RS485 Communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
@@ -387,6 +400,9 @@ void  systemSetup() {
   String filename = "/" + String(timeinfo.tm_yday) + "_" + String(timeinfo.tm_hour) + "_" + String(timeinfo.tm_min) + ".txt" ;
   // String filename = "/test.txt" ;
 
+    // set file system to save every log automatically
+  LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);
+  LOG_INFO("DEBUG LOG FILE  -  Set Log Level in Definitions");
 
 
   LOG_TRACE("Setup Proximity Sensor");
