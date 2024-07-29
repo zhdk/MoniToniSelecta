@@ -194,11 +194,12 @@ volatile bool errorOnState = false;
 volatile bool transactionActive = false;
 volatile bool requestActive = false;
 volatile bool proximityTriggered = false;
-volatile bool displayOn = false;
+volatile bool displayOn = true;
 
 // Network Variables
 const char *SSID = WIFI_SSID;        // Change this to your WiFi SSID
 const char *PW = WIFI_PASS; // Change this to your WiFi password
+volatile bool wifiError = false;
 
 
 const String host = "monitoni.zhdk.ch";
@@ -316,6 +317,7 @@ void  systemSetup() {
   Serial.begin(115200);
   Serial.println();
 
+
   //UI & Display Initialization
   ui_setup();
 
@@ -327,9 +329,11 @@ void  systemSetup() {
     Serial.println("Card failed, or not present");
   }
 
-  // Initialize Serial port
-  Serial.begin(115200);
-  Serial.println();
+
+  // set file system to save every log automatically
+  LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);
+  LOG_INFO("DEBUG LOG FILE  -  Set Log Level in Definitions");
+
 
   //Initialized Serial port for RS485 Communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
@@ -375,7 +379,6 @@ void  systemSetup() {
 
 
   // Use WiFiClientSecure class to create TLS connection
-  Serial.println("Set Client Insecure");
   client.setInsecure();
   client.setTimeout(20000);
 
@@ -384,12 +387,6 @@ void  systemSetup() {
   String filename = "/" + String(timeinfo.tm_yday) + "_" + String(timeinfo.tm_hour) + "_" + String(timeinfo.tm_min) + ".txt" ;
   // String filename = "/test.txt" ;
 
-  
-
-  // set file system to save every log automatically
-  LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);
-
-  LOG_INFO("DEBUG LOG FILE  -  Set Log Level in ESP32");
 
 
   LOG_TRACE("Setup Proximity Sensor");
@@ -616,22 +613,24 @@ static void updateProximity() {
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycles) {
-  // _LEDBLINK blink LEDs in color w/ speed and cycles
-
+  //_LEDBLINK blink LEDs in color w/ speed and cycles
+  lightOnState = true;
 }
 
 static void ledStatic (int firstLED, int lastLED, int color) {
-  // _LEDSTATIC set LEDs in color
+  //_LEDSTATIC set LEDs in color
 }
 
 static void ledSetWhite () {
   //_LEDWHITE turn on all white
+  lightOnState = true;
 }
 
 
 static void ledSetOFF () {
   //_LED turn all off
   ledStatic(0, NUMPIXELS - 1, 0);
+  lightOnState = false;
 }
 
 static void ledSetGreen (int itemLED, bool blink) {
@@ -658,6 +657,20 @@ bool permissionRequest()
   {
     // Serial.println("Connection failed");
     LOG_ERROR("ERROR: Connection failed - permission request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -673,6 +686,20 @@ bool permissionRequest()
     // Serial.println(String("Failed to send request"));
     client.stop();
     LOG_ERROR("ERROR: Failed to send request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
   else
@@ -690,6 +717,20 @@ bool permissionRequest()
     LOG_ERROR("Status: ", status);
     client.stop();
     LOG_ERROR("ERROR: Unexpected response");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -699,8 +740,22 @@ bool permissionRequest()
   {
     Serial.println(String("Invalid response"));
     client.stop();
-    return 0;
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_ERROR("ERROR: Invalid response");
+    return 0; 
   }
 
   // Allocate the JSON document
@@ -716,6 +771,20 @@ bool permissionRequest()
     Serial.println(error.f_str());
     client.stop();
     LOG_ERROR("ERROR: Deserialization failed");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -758,6 +827,20 @@ bool completeRequest()
   {
     // Serial.println("Connection failed");
     LOG_ERROR("ERROR: Connection failed - complete request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -773,6 +856,20 @@ bool completeRequest()
     // Serial.println(String("Failed to send request"));
     LOG_ERROR("ERROR: Failed to send complete request");
     client.stop();
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
   else
@@ -799,6 +896,20 @@ bool completeRequest()
     LOG_ERROR("ERROR: Status received: ", status);
     client.stop();
     // Serial.println("UNSUCCESSFUL Request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -810,6 +921,20 @@ bool completeRequest()
     // Serial.println("UNSUCCESSFUL Request");
     LOG_ERROR("ERROR: Invalid response for complete request");
     client.stop();
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -837,6 +962,20 @@ bool closeRequest()
   {
     // Serial.println("Connection failed");
     LOG_ERROR("ERROR: Connection failed - close request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -852,6 +991,20 @@ bool closeRequest()
     // Serial.println(String("Failed to send request"));
     LOG_ERROR("ERROR: Failed to send close request");
     client.stop();
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
   else
@@ -862,21 +1015,27 @@ bool closeRequest()
   // Check HTTP status
   char status[32] = {0};
   client.readBytesUntil('\r', status, sizeof(status));
-  /*
-  Serial.println("");
-  Serial.println("Request Completed");
-  Serial.println("Received this from Server: ");
-  Serial.println(status);
-  Serial.println("");
-  Serial.println("");
-  */
+  
   if (strcmp(status, "HTTP/1.1 201 Created") != 0)
   {
     // Serial.print(String("Unexpected response: "));
     LOG_ERROR("ERROR: Received Status: ", status);
     LOG_ERROR("ERROR: Unexpected response for close request");
     client.stop();
-    // Serial.println("UNSUCCESSFUL Request");
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -884,10 +1043,22 @@ bool closeRequest()
   char endOfHeaders[] = "\r\n\r\n";
   if (!client.find(endOfHeaders))
   {
-    // Serial.println(String("Invalid response"));
-    // Serial.println("UNSUCCESSFUL Request");
     LOG_ERROR("ERROR: Invalid response for close request");
     client.stop();
+    //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
+    lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     return 0;
   }
 
@@ -929,16 +1100,6 @@ void ui_setup() {
   lv_obj_remove_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
 
-  // lv_screen_load(ui_MainScreen);
-  //
-  /*
-  lv_screen_load(ui_ValidationScreen);
-  lv_obj_remove_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
-  serverRequest_Animation(ui_ValidationStatusPanel, 0);
-  */
-
-  //lv_screen_load(ui_EndScreen);
 
   // ui updates
   //lvgl ui ticker
@@ -965,11 +1126,29 @@ void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
 // LVGL Display Interface turn off function
 void turnOffDisplay() {
   // switch to blank sleep screen
+  if (activeScreen != 4) {
+      lv_screen_load(ui_MainScreen);
+      lv_obj_add_flag(ui_ButtonOpen, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ButtonSpin, LV_OBJ_FLAG_HIDDEN);
+      ui_ticker();
+      lv_task_handler(); /* let the GUI do its work */
+      activeScreen = 4;
+  }
+
   displayOn = false;
 }
 // LVGL Display Interface turn on function
 void turnOnDisplay() {
   // switch to main/idle screen
+  if (activeScreen != 1) {
+      lv_screen_load(ui_MainScreen);
+      lv_screen_load(ui_MainScreen);
+      lv_obj_remove_flag(ui_ButtonOpen, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_ButtonSpin, LV_OBJ_FLAG_HIDDEN);
+      ui_ticker();
+      lv_task_handler(); /* let the GUI do its work */
+      activeScreen = 1;
+  }
   displayOn = true;
 }
 
@@ -1034,7 +1213,6 @@ void vendingSleep() {
     LOG_TRACE("HARDWARE: Stop Sleep Timer");
     timerSleep.stop();
   }
-
   if (displayOn) {
     LOG_TRACE("HARDWARE: Turn Off Display");
     turnOffDisplay();
@@ -1078,6 +1256,11 @@ void vendingSleep() {
 
 
 void vendingIdle() {
+  if (!displayOn) {
+    LOG_TRACE("HARDWARE: Turn On Display");
+    turnOnDisplay();
+  }
+
   if (timerSleep.read() > SleepDELAY) {
     LOG_TRACE("LOGIC: Sleep Timer greater than SleepDELAY");
     timerSleep.stop();
@@ -1086,17 +1269,6 @@ void vendingIdle() {
     LOG_INFO("STATE: Switching to Sleep State");
     return;
   }
-
-
-  if (!displayOn) {
-    LOG_TRACE("HARDWARE: Turn On Display");
-    turnOnDisplay();
-  }
-  if (activeScreen != 1) {
-    lv_screen_load(ui_MainScreen);
-    activeScreen = 1;
-  }
-
 
   if (carrouselUnlockedState) {
     LOG_TRACE("HARDWARE: Lock Carrousel");
@@ -1162,15 +1334,16 @@ void vendingTurn() {
       LOG_TRACE("LOGIC: motorOnState false");
       LOG_DEBUG("HARDWARE: Turn Motor On");
       motorOn();
+      lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, true);  //_GUI spinbutton add clicked state on mainscreen
+      lv_obj_set_state(ui_ButtonOpen, LV_STATE_DISABLED, true);  //_GUI openbutton add disabled state on mainscreen
+      ui_ticker();
+      lv_task_handler(); //_GUI ui handler
       return;
     }
     return;
   }
   else {
     LOG_DEBUG("HARDWARE: Lock carrousel");
-    lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, true);  //_GUI spinbutton add clicked state on mainscreen
-    ui_ticker();
-    lv_task_handler(); //_GUI ui handler
     if (carrouselUnlockedState) {
       carrouselLock();
     }
@@ -1181,6 +1354,7 @@ void vendingTurn() {
       motorOff();
     }
     lv_obj_set_state(ui_ButtonSpin, LV_STATE_PRESSED, false); //_GUI spinbutton remove clicked state on mainscreen
+    lv_obj_set_state(ui_ButtonOpen, LV_STATE_DISABLED, false); //_GUI openbutton remove disabled state on mainscreen
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     //carrouselLock(); -- NOTE: double and not necessary?
@@ -1198,7 +1372,10 @@ void vendingValidate() {
   // Server Timeout
   if (timerServerTimeout.read() > ServerTimeout) {
     //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
-    lv_screen_load(ui_EndScreen);
+    if (activeScreen != 3) {
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
+    }
     lv_obj_remove_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
@@ -1255,7 +1432,7 @@ void vendingValidate() {
 void vendingCollect(){
   //update Hardware - Switch inputs
   updateSwitchInputs();
-  
+
   //if (timerPurchaseTimeout.read() > PurchaseTimeoutDELAY) { -- NOTE: Purchase Timeout handled through MoniToni --> timerPurchaseTimeout not necessary
   // __NUNU__ if (!permissionRequest()) {
   if (!permission) {
@@ -1362,8 +1539,8 @@ void vendingFinished() {
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: doorOpenState is false");
-    LOG_DEBUG("HARDWARE: Turn sirene off");
     if (sireneOnState) {
+      LOG_DEBUG("HARDWARE: Turn sirene off");
       sireneOff();
     }
     timerDoorOpen.stop();
@@ -1491,11 +1668,32 @@ void mainLoop() {
   //check wifi connection
   while (WiFi.status() != WL_CONNECTED)
   {
-    // errorOn();
     delay(500);
-    // errorOff();
-    // Serial.print(".");
-    //_GUI WIFI ERROR MESSAGE
+    if (!wifiError) {
+      LOG_ERROR("ERROR: WIFI Connection lost");
+      //_GUI WIFI ERROR MESSAGE on StartUpScreen
+      if (activeScreen != 0) {
+        lv_screen_load(ui_StartUpScreen);
+        activeScreen = 0;
+      }
+      lv_obj_remove_flag(ui_WIFILabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
+      ui_ticker();
+      lv_task_handler(); //_GUI ui handler
+      wifiError = true;
+    }
+  }
+  if (wifiError) {
+    LOG_ERROR("ERROR: WIFI Connection re-established");
+    //_GUI MainScreen
+    if (activeScreen != 1) {
+      lv_screen_load(ui_MainScreen);
+      activeScreen = 1;
+    }
+    ui_ticker();
+    lv_task_handler(); //_GUI ui handler
+    wifiError = false;
   }
 
   // Update M5CoreS3 base functions

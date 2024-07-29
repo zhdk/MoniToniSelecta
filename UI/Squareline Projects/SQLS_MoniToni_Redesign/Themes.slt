@@ -1,0 +1,140 @@
+{
+  "deftheme": {
+    "name": "Default",
+    "properties": [
+      {
+        "nid": -2047609156,
+        "strtype": "THEME_COLOR",
+        "strval": "Light Shades",
+        "intarray": [
+          242,
+          247,
+          246,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 224227233,
+        "strtype": "THEME_COLOR",
+        "strval": "Success",
+        "intarray": [
+          125,
+          185,
+          66,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 690909632,
+        "strtype": "THEME_COLOR",
+        "strval": "Main Color",
+        "intarray": [
+          255,
+          215,
+          18,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": -724302310,
+        "strtype": "THEME_COLOR",
+        "strval": "Danger",
+        "intarray": [
+          244,
+          67,
+          54,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 2025785766,
+        "strtype": "THEME_COLOR",
+        "strval": "Dark Shades",
+        "intarray": [
+          50,
+          86,
+          90,
+          255
+        ],
+        "InheritedType": 0
+      }
+    ]
+  },
+  "themes": [
+    {
+      "name": "MoniToni Theme",
+      "properties": [
+        {
+          "nid": -2047609156,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Light Shades",
+          "intarray": [
+            242,
+            247,
+            246,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": 224227233,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Success",
+          "intarray": [
+            125,
+            185,
+            66,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": 690909632,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Main Color",
+          "intarray": [
+            255,
+            215,
+            18,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": -724302310,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Danger",
+          "intarray": [
+            244,
+            67,
+            54,
+            255
+          ],
+          "InheritedType": 0
+        },
+        {
+          "nid": 2025785766,
+          "flags": 2097152,
+          "strtype": "THEME_COLOR",
+          "strval": "Dark Shades",
+          "intarray": [
+            50,
+            86,
+            90,
+            255
+          ],
+          "InheritedType": 0
+        }
+      ]
+    }
+  ],
+  "selected_theme": "MoniToni Theme"
+}
