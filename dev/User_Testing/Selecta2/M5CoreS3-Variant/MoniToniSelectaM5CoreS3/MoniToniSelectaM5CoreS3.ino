@@ -236,10 +236,15 @@ const int LEDMAPPING_LEVELS[10][2] = {
   {LED_LEVEL_10_START, LED_LEVEL_10_END}
 };
 
-const int LED_COLORS[3][3] = {
+const int LED_COLORS[8][3] = {
   {0, 0, 0},    // OFF
   {0, 255, 0},  // GREEN
-  {255, 0, 0}   // RED
+  {255, 0, 0},   // RED
+  {0, 0, 255},    // BLUE
+  {255, 255, 0},  // YELLOW
+  {255, 0, 255},   // MAGENTA
+  {0, 255, 255},    // CYAN
+  {255, 255, 255}  // WHITE
 };
 
 
@@ -261,29 +266,6 @@ Timer timerDoorOpen;
 
 Ltr5xx_Init_Basic_Para device_init_base_para = LTR5XX_BASE_PARA_CONFIG_DEFAULT;
 
-// static Button buttonTurnSwitch(0, buttonTurnSwitchHandler);
-// static Button doorSwitch(1, doorSwitchHandler);
-// static Button buttonOpenSwitch(1, buttonOpenSwitchHandler);
-
-
-// _____________handlerfunctions based on systemsetup in main_____________
-
-// static void buttonTurnSwitchHandler(uint8_t btnId, uint8_t btnState) {
-//   if (btnState == BTN_PRESSED) {
-//     LOG_TRACE("LOGIC: buttonTurnPushedState set to true");
-//     buttonTurnPushedState = true;
-//     LOG_TRACE("TIMER: Button Turn Press stopped");
-//     timerButtonTurnPress.stop();
-//     return;
-//   }
-
-//   // btnState == BTN_OPEN.
-//   LOG_TRACE("LOGIC: buttonTurnPushedState set to false");
-//   buttonTurnPushedState = false;
-//   LOG_TRACE("TIMER: Button Turn Press started");
-//   timerButtonTurnPress.stop();
-//   timerButtonTurnPress.start();
-// }
 
 static void doorSwitchHandler(uint8_t btnId, uint8_t btnState) {
   if (btnState == BTN_OPEN) {
@@ -301,27 +283,7 @@ static void doorSwitchHandler(uint8_t btnId, uint8_t btnState) {
   timerDoorOpen.start();
 }
 
-// static void buttonOpenSwitchHandler(uint8_t btnId, uint8_t btnState) {
-//   if (btnState == BTN_PRESSED) {
-//     LOG_TRACE("LOGIC: buttonOpenPushedState set to true");
-//     buttonOpenPushedState = true;
-//     LOG_TRACE("TIMER: Button Open Press Timer stopped");
-//     timerButtonOpenPress.stop();
-//     return;
-//   }
-
-//   // btnState == BTN_OPEN.
-//   LOG_TRACE("LOGIC: buttonOpenPushedState set to false");
-//   buttonOpenPushedState = false;
-//   LOG_TRACE("TIMER: Button Open Press Timer started");
-//   timerButtonOpenPress.stop();
-//   timerButtonOpenPress.start();
-// }
-
-// static Button buttonTurnSwitch(0, buttonTurnSwitchHandler);
 static Button doorSwitch(1, doorSwitchHandler);
-// static Button buttonOpenSwitch(1, buttonOpenSwitchHandler);
-
 
 
 // _____________Startup Setup Function_____________
@@ -637,21 +599,23 @@ static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycle
 
 static void ledStatic (int firstLED, int lastLED, int color) {
   //_LEDSTATIC set LEDs in color
+  lightOnState = true;
 }
 
 static void ledSetWhite () {
   //_LEDWHITE turn on all white
+  ledStatic(0, NUMPIXELS - 1, 7);
   lightOnState = true;
 }
 
 
-static void ledSetOFF () {
+static void ledOff () {
   //_LED turn all off
   ledStatic(0, NUMPIXELS - 1, 0);
   lightOnState = false;
 }
 
-static void ledSetGreen (int itemLED, bool blink) {
+static void ledItemGreen (int itemLED, bool blink) {
   if (blink) {
     ledBlink(LEDMAPPING_LEVELS[itemLED + 1][0], LEDMAPPING_LEVELS[itemLED + 1][1], 2, 100, 5);
   }
@@ -898,22 +862,14 @@ bool completeRequest()
   // Check HTTP status
   char status[32] = {0};
   client.readBytesUntil('\r', status, sizeof(status));
-  /*
-  Serial.println("");
-  Serial.println("Request Completed");
-  Serial.println("Received this from Server: ");
-  Serial.println(status);
-  Serial.println("");
-  Serial.println("");
-  */
+
+
   if (strcmp(status, "HTTP/1.1 201 Created") != 0)
   {
-    // Serial.print(String("Unexpected response: "));
-    // Serial.println(status);
     LOG_ERROR("ERROR: Unexpected response");
     LOG_ERROR("ERROR: Status received: ", status);
     client.stop();
-    // Serial.println("UNSUCCESSFUL Request");
+
     //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
     if (activeScreen != 3) {
       lv_screen_load(ui_EndScreen);
@@ -935,8 +891,6 @@ bool completeRequest()
   char endOfHeaders[] = "\r\n\r\n";
   if (!client.find(endOfHeaders))
   {
-    // Serial.println(String("Invalid response"));
-    // Serial.println("UNSUCCESSFUL Request");
     LOG_ERROR("ERROR: Invalid response for complete request");
     client.stop();
     //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
@@ -959,7 +913,6 @@ bool completeRequest()
   // Disconnect
   client.stop();
 
-  Serial.println("Successful Request");
   LOG_TRACE("SUCCESS: Complete Request");
 
   return 1;
@@ -968,14 +921,12 @@ bool completeRequest()
 
 
 ///////////////////////------ close request ------///////////////////////
-
 bool closeRequest()
 {
   transactionActive = false;
   permission = false;
 
-  // Serial.print("Connecting to ");
-  // Serial.println(host);
+
   if (!client.connect("monitoni.zhdk.ch", 443))
   {
     // Serial.println("Connection failed");
@@ -998,8 +949,6 @@ bool closeRequest()
   }
 
   // Send HTTP request
-  // Serial.print("Requesting URL: ");
-  // Serial.println(url_close);
   client.println(String("GET " + url_close + " HTTP/1.0"));
   client.println(String("Host: " + host));
   client.println(String(monitoni_terminal));
@@ -1119,11 +1068,8 @@ void ui_setup() {
   lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
 
 
-  // ui updates
-  //lvgl ui ticker
   ui_ticker();
-  //lvgl task handler
-  lv_task_handler(); /* let the GUI do its work */
+  lv_task_handler(); 
 }
 
 
@@ -1246,6 +1192,7 @@ void vendingSleep() {
   if (lightOnState) {
     LOG_TRACE("HARDWARE: Turn Off Light");
     lightOff();
+    ledOff();
   }
   if (sireneOnState) {
     LOG_TRACE("HARDWARE: Turn Off Sirene");
@@ -1300,6 +1247,7 @@ void vendingIdle() {
   if (!lightOnState) {
     LOG_TRACE("HARDWARE: Turn On Light");
     lightOn();
+    ledSetWhite();
   }
   if (sireneOnState) {
     LOG_TRACE("HARDWARE: Turn Off Sirene");
@@ -1531,6 +1479,7 @@ void vendingCollect(){
     LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
     LOG_DEBUG("HARDWARE: Unlock Item: " + item);
     itemUnlock(item);
+    ledItemGreen(item, 0);
     timerServerTimeout.start(); //NU
     LOG_DEBUG("TIMER: Sleep Timer started");
     return;
@@ -1669,6 +1618,7 @@ void vendingFinished() {
     }
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
+    ledSetWhite ();
     if ( closeRequest() ) {
       //_GUI CompleteTransactionLabel on EndingScreen
       //_GUI ThankYouLabel on EndingScreen
@@ -1750,6 +1700,8 @@ void vendingError() {
     }
   }
   
+  //_LEDRED turn on all leds red
+  ledStatic(0, NUMPIXELS - 1, 2);
 
   transactionActive = false;
   LOG_DEBUG("LOGIC: requestActive set to false");

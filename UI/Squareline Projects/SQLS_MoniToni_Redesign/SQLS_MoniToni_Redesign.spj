@@ -4257,7 +4257,7 @@
                   {
                     "nid": -608546019,
                     "strtype": "OBJECT/Hidden",
-                    "strval": "True",
+                    "strval": "False",
                     "InheritedType": 2
                   },
                   {
@@ -4459,7 +4459,7 @@
                   {
                     "nid": 1500456753,
                     "strtype": "LABEL/Text",
-                    "strval": "DOOR CLOSED",
+                    "strval": "DOOR OPENED",
                     "InheritedType": 10
                   },
                   {
@@ -4568,7 +4568,7 @@
                   {
                     "nid": 978644473,
                     "strtype": "OBJECT/Hidden",
-                    "strval": "False",
+                    "strval": "True",
                     "InheritedType": 2
                   },
                   {
@@ -6002,7 +6002,6 @@
                       },
                       {
                         "nid": -1657182680,
-                        "flags": 1048576,
                         "strtype": "OBJECT/States",
                         "InheritedType": 1
                       },
@@ -6334,7 +6333,7 @@
                   {
                     "nid": -265279446,
                     "strtype": "OBJECT/Checked",
-                    "strval": "True",
+                    "strval": "False",
                     "InheritedType": 2
                   },
                   {
@@ -11855,7 +11854,7 @@
     "theme_color2": 0,
     "uiExportFolderPath": "/Users/jreck/Documents/Arduino/SquareLine/MoniToniSelectaUI/SquareLine_Test/SquareLine_Test/./libraries/ui/src",
     "projectExportFolderPath": "/Users/jreck/Documents/Arduino/SquareLine/MoniToniSelectaUI/SquareLine_Test/SquareLine_Test",
-    "backup_cnt": 188,
+    "backup_cnt": 208,
     "autosave_cnt": 0,
     "lvgl_version": "9.1.0",
     "callfuncsexport": "C_FILE",
