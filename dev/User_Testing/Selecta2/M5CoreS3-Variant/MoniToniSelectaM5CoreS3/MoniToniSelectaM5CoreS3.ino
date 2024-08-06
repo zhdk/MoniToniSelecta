@@ -126,6 +126,7 @@
 
 
 
+
 // _____________Library Imports_____________
 
 // M5CoreS3.h Libary by Tinyu-Zhao,M5Stack [1.0.0]
@@ -247,10 +248,7 @@ const int LED_COLORS[8][3] = {
   {255, 255, 255}  // WHITE
 };
 
-
-// unsigned char  cmdModbus[8] = {0x01,0x05,0,0,0,0,0,0}; 
-// unsigned int   checksumModbus;
-// unsigned char relayNumber,sendByteModbus;
+const float BRIGHNESS = 0.5;
 
 
 // _____________instances_____________
@@ -592,27 +590,33 @@ static void updateProximity() {
   }
 }
 
-static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycles) {
-  //_LEDBLINK blink LEDs in color w/ speed and cycles
-  lightOnState = true;
+//base function to controll leds
+static void ledStatic (int firstLED, int lastLED, int color) {
+  if (color == 0) {
+    lightOnState = false;
+  }
+  else {
+    lightOnState = true;
+  }
+  //_LEDSTATIC set LEDs in color from firstLED to lastLED with BRIGHNESS
 }
 
-static void ledStatic (int firstLED, int lastLED, int color) {
-  //_LEDSTATIC set LEDs in color
-  lightOnState = true;
+static void ledBlink (int firstLED, int lastLED, int color, int speed, int cycles) {
+  //_LEDBLINK blink LEDs in color w/ speed and cycles
+  //lightOnState = true;
 }
 
 static void ledSetWhite () {
   //_LEDWHITE turn on all white
   ledStatic(0, NUMPIXELS - 1, 7);
-  lightOnState = true;
+  //lightOnState = true;
 }
 
 
 static void ledOff () {
   //_LED turn all off
   ledStatic(0, NUMPIXELS - 1, 0);
-  lightOnState = false;
+  //lightOnState = false;
 }
 
 static void ledItemGreen (int itemLED, bool blink) {
