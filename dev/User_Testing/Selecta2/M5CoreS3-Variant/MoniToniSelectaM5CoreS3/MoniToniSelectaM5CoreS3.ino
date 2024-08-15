@@ -72,9 +72,9 @@
 #define PurchaseTimeoutDELAY 60000
 #define DoorOpenSireneDELAY 10000
 #define ServerTimeout 3000
-// #define MotorTurnDELAY 2500
 #define MotorTurnDELAY 2400
 #define BluetoothSetupDelay 15000
+#define ErrorDELAY 3000
 
 
 // Proximity Sensor
@@ -82,7 +82,7 @@
 
 
 // Speaker Volume [0 - 255]
-#define SpeakerVolume 100
+#define SpeakerVolume 60
 // Speaker Frequency [in Hz]
 #define SpeakerFrequency 1000
 
@@ -105,35 +105,35 @@
 #define CONNECTEDHUBPORT 0
 
 // LED PIXEL COUNT
-#define NUMPIXELS 288
+#define NUMPIXELS 174
 
-// LED BRIGHTNESS
-#define BRIGHTNESS 0.5
+// LED BRIGHTNESS [0 - 255]
+#define BRIGHTNESS 10
 
 // LED BLINKRATE
-#define BLINKRATE 1000
+#define BLINKRATE 250
 
 // LED MAPPING
 #define LED_LEVEL_1_START 0
-#define LED_LEVEL_1_END 28
-#define LED_LEVEL_2_START 29
-#define LED_LEVEL_2_END 57
-#define LED_LEVEL_3_START 58
-#define LED_LEVEL_3_END 86
-#define LED_LEVEL_4_START 87
-#define LED_LEVEL_4_END 115
-#define LED_LEVEL_5_START 116
-#define LED_LEVEL_5_END 144
-#define LED_LEVEL_6_START 145
-#define LED_LEVEL_6_END 173
-#define LED_LEVEL_7_START 174
-#define LED_LEVEL_7_END 202
-#define LED_LEVEL_8_START 203
-#define LED_LEVEL_8_END 231
-#define LED_LEVEL_9_START 232
-#define LED_LEVEL_9_END 260
-#define LED_LEVEL_10_START 261
-#define LED_LEVEL_10_END 288
+#define LED_LEVEL_1_END 15
+#define LED_LEVEL_2_START 16
+#define LED_LEVEL_2_END 33
+#define LED_LEVEL_3_START 34
+#define LED_LEVEL_3_END 50
+#define LED_LEVEL_4_START 51
+#define LED_LEVEL_4_END 67
+#define LED_LEVEL_5_START 68
+#define LED_LEVEL_5_END 84
+#define LED_LEVEL_6_START 85
+#define LED_LEVEL_6_END 101
+#define LED_LEVEL_7_START 102
+#define LED_LEVEL_7_END 118
+#define LED_LEVEL_8_START 119
+#define LED_LEVEL_8_END 135
+#define LED_LEVEL_9_START 136
+#define LED_LEVEL_9_END 152
+#define LED_LEVEL_10_START 153
+#define LED_LEVEL_10_END 173
 
 
 
@@ -271,6 +271,7 @@ const int LED_COLORS[8][3] = {
 };
 
 volatile int previousTimeBlink = 0;
+volatile bool blinkOn = false; 
 
 
 // _____________instances_____________
@@ -320,7 +321,7 @@ void  systemSetup() {
 
   // Initialize PBHUB
   porthub.begin();
-  porthub.hub_wire_length(CONNECTEDHUBPORT, NUMPIXELS);
+  porthub.hub_wire_length(HUB_ADDR[CONNECTEDHUBPORT], NUMPIXELS);
 
   //UI & Display Initialization
   ui_setup();
@@ -629,24 +630,25 @@ static void ledStatic (int firstLED, int lastLED, int color) {
   }
   //_LEDSTATIC set LEDs in color from firstLED to lastLED with BRIGHTNESS
   porthub.hub_wire_setBrightness(HUB_ADDR[CONNECTEDHUBPORT], BRIGHTNESS);
-  porthub.hub_wire_fill_color(HUB_ADDR[CONNECTEDHUBPORT], firstLED, lastLED - firstLED, LED_COLORS[color][1], LED_COLORS[color][2], LED_COLORS[color][3]);
+  porthub.hub_wire_fill_color(HUB_ADDR[CONNECTEDHUBPORT], firstLED, lastLED - firstLED + 1, LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]);
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed) {
-  lightOnState = true;
   LOG_TRACE("LOGIC: ledBlink");
   // blink leds using previousTimeBlink to keep track of time passed and speed in ms from firstLED to lastLED with BRIGHTNESS and color
   if (millis() - previousTimeBlink > speed) {
-    if (color == 0) {
-      ledStatic(firstLED, lastLED, 0);
+    if (!blinkOn) {
+      ledStatic(firstLED, lastLED, color);
+      blinkOn = true;
     }
     else {
-      ledStatic(firstLED, lastLED, color);
+      ledStatic(firstLED, lastLED, 0);
+      blinkOn = false;
     }
     previousTimeBlink = millis();
   }
   else {
-    ledOff();
+    ledStatic(firstLED, lastLED, 0);
   }
 }
 
@@ -665,15 +667,15 @@ static void ledSetRed () {
 static void ledOff () {
   //_LED turn all off
   ledStatic(0, NUMPIXELS - 1, 0);
-  //lightOnState = false;
+  lightOnState = false;
 }
 
 static void ledItemGreen (int itemLED, bool blink) {
   if (blink) {
-    ledBlink(LEDMAPPING_LEVELS[itemLED + 1][0], LEDMAPPING_LEVELS[itemLED + 1][1], 1, BLINKRATE);   //_LEDGREEN blink green on itemLED
+    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1, BLINKRATE);   //_LEDGREEN blink green on itemLED
   }
   else {
-    ledStatic(LEDMAPPING_LEVELS[itemLED + 1][0], LEDMAPPING_LEVELS[itemLED + 1][1], 1);   //_LEDGREEN turn on green on itemLED
+    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1);   //_LEDGREEN turn on green on itemLED
   } 
 }
 
@@ -1541,10 +1543,11 @@ void vendingCollect(){
     LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
     LOG_DEBUG("HARDWARE: Unlock Item: " + item);
     itemUnlock(item);
-    LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    ledItemGreen(item, 1);
     return;
   }
+
+  LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+  ledItemGreen(item, 1);
 
   if (doorOpenState && transactionActive) {
     //_GUI Door Open Status Label on ValidationScreen
@@ -1770,11 +1773,14 @@ void vendingError() {
   //_LEDRED turn on all leds red
   LOG_TRACE("HARDWARE: Turn On Light to red");
   ledSetRed();
+  delay(ErrorDELAY);
+  ledSetWhite();
   // lightOn();
 
   transactionActive = false;
   LOG_DEBUG("LOGIC: requestActive set to false");
   requestActive = false;
+  permission = false;
   LOG_DEBUG("LOGIC: vendingActive set to false");
   vendingState = 1; // Idle
   lv_screen_load(ui_MainScreen);
