@@ -315,6 +315,8 @@ void  systemSetup() {
   // Set display Brightness
   CoreS3.Display.setBrightness(TFT_BRIGHTNESS);
 
+  // for ease of upload wait for serial connection
+  delay(2000);
   // Initialize Serial port
   Serial.begin(115200);
   Serial.println();
@@ -647,9 +649,9 @@ static void ledBlink (int firstLED, int lastLED, int color, int speed) {
     }
     previousTimeBlink = millis();
   }
-  else {
-    ledStatic(firstLED, lastLED, 0);
-  }
+  // else {
+  //   ledStatic(firstLED, lastLED, 0);
+  // }
 }
 
 static void ledSetWhite () {
@@ -673,6 +675,7 @@ static void ledOff () {
 static void ledItemGreen (int itemLED, bool blink) {
   if (blink) {
     ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1, BLINKRATE);   //_LEDGREEN blink green on itemLED
+    return;
   }
   else {
     ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1);   //_LEDGREEN turn on green on itemLED
@@ -1418,6 +1421,7 @@ void vendingValidate() {
     lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
+    ledSetRed();
     CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: Server Timeout Timer larger then ServerTimeout");
     timerServerTimeout.stop();
@@ -1664,7 +1668,7 @@ void vendingFinished() {
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
   }
-
+  
   if (!doorOpenState) {
     //_GUI Door Close Status Label on ValidationScreen
     //_GUI hide UserActionPanel on ValidationScreen
@@ -1719,6 +1723,7 @@ void vendingFinished() {
       vendingState = 1; // Idle
       LOG_INFO("STATE: Switching to Idle State");
       lv_screen_load(ui_MainScreen);
+      ledSetWhite();
       return;
     }
     if (timerServerTimeout.read() > ServerTimeout) {
