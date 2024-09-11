@@ -108,10 +108,10 @@
 #define NUMPIXELS 174
 
 // LED BRIGHTNESS [0 - 255]
-#define BRIGHTNESS 10
+#define BRIGHTNESS 200
 
 // LED BLINKRATE
-#define BLINKRATE 250
+#define BLINKRATE 500
 
 // LED MAPPING
 #define LED_LEVEL_1_START 0
@@ -1518,37 +1518,40 @@ void vendingCollect(){
     return;
   }
 
-  if (!itemUnlockedState && !doorOpenState) {
-    //_GUI Door Open Status Label on ValidationScreen
-    //_GUI show UserActionPanel on ValidationScreen
-    //_GUI User Open Action Label on ValidationScreen
-    lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
+  if (!doorOpenState) {
+    if (!itemUnlockedState) {
+      LOG_TRACE("LOGIC: itemUnlockedState is false");
+      LOG_DEBUG("HARDWARE: Unlock Item: " + item);
+      itemUnlock(item);
+      //_GUI Door Open Status Label on ValidationScreen
+      //_GUI show UserActionPanel on ValidationScreen
+      //_GUI User Open Action Label on ValidationScreen
+      lv_obj_remove_flag(ui_ValidationStatusPanel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_UserActionPanel, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
-    lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
-    lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
+      lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DEFAULT);
+      lv_obj_add_state(ui_ValidationStatusPanel, LV_STATE_CHECKED);
+      lv_obj_remove_state(ui_ValidationStatusPanel, LV_STATE_DISABLED);
 
-    lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_ValidationStatusLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_AccessGrantedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_AccessDeniedStatusLabel, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_remove_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_DoorClosedStatusLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_DoorOpenStatusLabel, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_add_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
-    ui_ticker();
-    lv_task_handler(); //_GUI ui handler
-    LOG_TRACE("LOGIC: itemUnlockedState && doorOpenState are false");
-    LOG_DEBUG("HARDWARE: Unlock Item: " + item);
-    itemUnlock(item);
+      lv_obj_add_flag(ui_UserCloseActionLabel, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
+      ui_ticker();
+      lv_task_handler(); //_GUI ui handler
+    }
+
+    LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+    ledItemGreen(item, 1);
     return;
   }
 
-  LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-  ledItemGreen(item, 1);
-
+  
   if (doorOpenState && transactionActive) {
     //_GUI Door Open Status Label on ValidationScreen
     //_GUI User Close Action Label on ValidationScreen
@@ -1595,12 +1598,12 @@ void vendingCollect(){
       LOG_INFO("STATE: Switching to Finished State");
       return;
     }
-    else {
-      LOG_ERROR("LOGIC: completeRequest returns false");
-      LOG_DEBUG("TIMER: Server Timer stopped");
-      timerServerTimeout.stop();
-      //_NUNU_ check logic flow -> if completeRequest returns false
-    }
+    // else {
+    //   LOG_ERROR("LOGIC: completeRequest returns false");
+    //   LOG_DEBUG("TIMER: Server Timer stopped");
+    //   timerServerTimeout.stop();
+    //   //_NUNU_ check logic flow -> if completeRequest returns false
+    // }
     if (timerServerTimeout.read() > ServerTimeout) {
       LOG_DEBUG("TIMER: Server Timer stopped");
       timerServerTimeout.stop();
