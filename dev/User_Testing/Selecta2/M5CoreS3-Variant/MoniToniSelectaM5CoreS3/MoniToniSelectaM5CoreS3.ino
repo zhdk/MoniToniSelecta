@@ -1551,7 +1551,7 @@ void vendingCollect(){
     }
 
     LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    ledItemGreen(item, 1);
+    ledItemGreen(item, 0);
     return;
   }
 
