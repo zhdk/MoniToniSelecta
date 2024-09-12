@@ -105,6 +105,9 @@
 #define CONNECTEDHUBPORT 0
 
 // LED PIXEL COUNT
+#define LED_PIN 9
+
+// LED PIXEL COUNT
 #define NUMPIXELS 174
 
 // LED BRIGHTNESS [0 - 255]
@@ -182,11 +185,13 @@
 // Credentials File
 #include "credentials.h"
 
-// PBHUB Class
-#include "porthub.h"
+// // PBHUB Class
+// #include "porthub.h"
 
+// PBHUB, M5 [1.0.0]
+#include <M5UnitPbHub.h>
 
-
+#include <Adafruit_NeoPixel.h>
 
 // _____________variables_____________
 
@@ -240,10 +245,13 @@ lv_display_t * disp;                //display instance
 
 uint16_t read_ps_value;   // Porximity Sensor Value
 
-PortHub porthub;  // PBHUB Instance
-// Hub Addresses
-uint8_t HUB_ADDR[6] = {HUB1_ADDR, HUB2_ADDR, HUB3_ADDR,
-                       HUB4_ADDR, HUB5_ADDR, HUB6_ADDR};
+// PortHub porthub;  // PBHUB Instance
+M5UnitPbHub pbhub;
+
+// Pixel Instance - set number of LEDs, pin number, LED type.
+Adafruit_NeoPixel LedPixels = Adafruit_NeoPixel(
+    NUMPIXELS, LED_PIN,
+    NEO_GRB + NEO_KHZ800);  
 
 
 const int LEDMAPPING_LEVELS[10][2] = {
@@ -322,8 +330,12 @@ void  systemSetup() {
   Serial.println();
 
   // Initialize PBHUB
-  porthub.begin();
-  porthub.hub_wire_length(HUB_ADDR[CONNECTEDHUBPORT], NUMPIXELS);
+  if (!pbhub.begin(&Wire, UNIT_PBHUB_I2C_ADDR, 2, 1, 400000U)) {
+        Serial.println("Couldn't find Pbhub");
+        while (1) delay(1);
+  }
+  // porthub.begin();
+  // porthub.hub_wire_length(HUB_ADDR[CONNECTEDHUBPORT], NUMPIXELS);
 
   //UI & Display Initialization
   ui_setup();
@@ -336,7 +348,8 @@ void  systemSetup() {
     Serial.println("Card failed, or not present");
   }
 
-
+  // Initialize LED Pixels
+  LedPixels.begin();
 
   //Initialized Serial port for RS485 Communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
@@ -597,14 +610,15 @@ void itemLock(int item)
 /////////////////////////////////////Based on system Setup included in main file
 // static Button buttonTurnSwitch(0, buttonTurnSwitchHandler);
 // static Button doorSwitch(1, doorSwitchHandler);
-// static Button buttonOpenSwitch(1, buttonOpenSwitchHandler);
+// static Button buttonOpenSwitch(3, buttonOpenSwitchHandler);
 
 
 static void updateSwitchInputs() {
   // update() will call buttonHandler() if PIN transitions to a new state and stays there
   // for multiple reads over 25+ ms.
   if (vendingState == 4 || vendingState == 5) {
-    doorSwitch.update(digitalRead(Door_PIN));
+    int buttonSignal = pbhub.digitalRead(CONNECTEDHUBPORT, 0);
+    doorSwitch.update(buttonSignal);
     return;
   }
   // buttonTurnSwitch.update(digitalRead(ButtonTurn_PIN));
@@ -626,13 +640,17 @@ static void updateProximity() {
 static void ledStatic (int firstLED, int lastLED, int color) {
   if (color == 0) {
     lightOnState = false;
+    LedPixels.clear();
+    return;
   }
   else {
     lightOnState = true;
-  }
-  //_LEDSTATIC set LEDs in color from firstLED to lastLED with BRIGHTNESS
-  porthub.hub_wire_setBrightness(HUB_ADDR[CONNECTEDHUBPORT], BRIGHTNESS);
-  porthub.hub_wire_fill_color(HUB_ADDR[CONNECTEDHUBPORT], firstLED, lastLED - firstLED + 1, LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]);
+    LedPixels.setBrightness(BRIGHTNESS);
+    LedPixels.fill(LedPixels.Color(LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]), firstLED, lastLED - firstLED + 1);
+  // }
+  // //_LEDSTATIC set LEDs in color from firstLED to lastLED with BRIGHTNESS
+  // porthub.hub_wire_setBrightness(HUB_ADDR[CONNECTEDHUBPORT], BRIGHTNESS);
+  // porthub.hub_wire_fill_color(HUB_ADDR[CONNECTEDHUBPORT], firstLED, lastLED - firstLED + 1, LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]);
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed) {
@@ -649,9 +667,6 @@ static void ledBlink (int firstLED, int lastLED, int color, int speed) {
     }
     previousTimeBlink = millis();
   }
-  // else {
-  //   ledStatic(firstLED, lastLED, 0);
-  // }
 }
 
 static void ledSetWhite () {
@@ -1548,10 +1563,12 @@ void vendingCollect(){
       lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
+      // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+      // ledItemGreen(item, 0);
     }
 
     LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    ledItemGreen(item, 0);
+    ledItemGreen(item, 1);
     return;
   }
 
@@ -1583,11 +1600,11 @@ void vendingCollect(){
     LOG_DEBUG("HARDWARE: Lock Items");
     if (itemUnlockedState) {
       itemLock(item);
+      ledItemGreen(item, 0);
     }
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timer started");
     LOG_DEBUG("HARDWARE: Change Item LED to static (in case blinking for open item)");
-    ledItemGreen(item, 0);
     if( completeRequest() ) {
       LOG_TRACE("LOGIC: completeRequest returns true");
       //timerPurchaseTimeout.stop();   -- NOTE: see previous note
