@@ -11,11 +11,11 @@
 #include <Adafruit_NeoPixel.h>
 
 #define PIN       9  //定义NeoPixel的控制引脚
-#define NUMPIXELS 20   //定义NeoPixel控制灯灯数量
+#define NUMPIXELS 173  //定义NeoPixel控制灯灯数量
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(
     NUMPIXELS, PIN,
-    NEO_GRB + NEO_KHZ800);  // set number of LEDs, pin number, LED type.
+    NEO_RGBW + NEO_KHZ800);  // set number of LEDs, pin number, LED type.
                           
 
 
@@ -28,21 +28,22 @@ void setup() {
     }
     CoreS3.Display.setTextSize(textsize);
         pixels.begin();    // Init the NeoPixel library.
+        pixels.clear();
 }
 
-int i = 0, j = 1, k = 2;
 
 void loop() {
-    pixels.setPixelColor(i++, pixels.Color(100, 0, 0));  // Bright red
-    pixels.setPixelColor(j++, pixels.Color(0, 100, 0));  // Bright green
-    pixels.setPixelColor(k++, pixels.Color(0, 0, 100));  // Bright blue
-    pixels.show();  // sends the updated color to the hardware.
+  // for (int i = 0; i < NUMPIXELS; i++){
+    pixels.fill(pixels.Color(100, 0, 0, 0), 0, NUMPIXELS - 1);  // Bright red
+    
+  // }
+  pixels.show();  // sends the updated color to the hardware.
 
-    delay(100);
-    if (i == NUMPIXELS)
-        i = 0;
-    else if (j == NUMPIXELS)
-        j = 0;
-    else if (k == NUMPIXELS)
-        k = 0;
+  delay(1000);
+    // if (i == NUMPIXELS)
+    //     i = 0;
+    // else if (j == NUMPIXELS)
+    //     j = 0;
+    // else if (k == NUMPIXELS)
+    //     k = 0;
 }

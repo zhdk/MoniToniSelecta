@@ -64,7 +64,7 @@
 // #define CarrouselDELAY 100
 #define CarrouselDELAY 0
 #define UserInputDELAY 5000
-#define SleepDELAY 60000
+#define SleepDELAY 120000
 #define debounceTurnButton 1
 #define debounceOpenButton 1
 #define debounceDoor 10
@@ -134,10 +134,9 @@
 #define LED_LEVEL_8_START 121
 #define LED_LEVEL_8_END 137
 #define LED_LEVEL_9_START 138
-#define LED_LEVEL_9_END 155
-#define LED_LEVEL_10_START 156
+#define LED_LEVEL_9_END 154
+#define LED_LEVEL_10_START 155
 #define LED_LEVEL_10_END 172
-
 
 
 
@@ -483,6 +482,7 @@ static void ledStatic (int firstLED, int lastLED, int color) {
   if (color == 0) {
     lightOnState = false;
     LedPixels.clear();
+    return;
   }
   else {
     lightOnState = true;
@@ -519,7 +519,7 @@ static void ledSetWhite () {
 
 static void ledSetRed () {
   //_LEDRED turn on all red
-  ledStatic(0, NUMPIXELS - 1, 1);
+  ledStatic(0, NUMPIXELS - 1, 2);
   //lightOnState = true;
 }
 
@@ -531,11 +531,11 @@ static void ledOff () {
 
 static void ledItemGreen (int itemLED, bool blink) {
   if (blink) {
-    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2, BLINKRATE);   //_LEDGREEN blink green on itemLED
+    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1, BLINKRATE);   //_LEDGREEN blink green on itemLED
     return;
   }
   else {
-    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2);   //_LEDGREEN turn on green on itemLED
+    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1);   //_LEDGREEN turn on green on itemLED
   } 
 }
 
@@ -1123,7 +1123,7 @@ void vendingSleep() {
       itemLock(i);
     }
   }
-  
+
   updateProximity();
 
   if (proximityTriggered) {
@@ -1405,13 +1405,12 @@ void vendingCollect(){
       lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
-      LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-      ledItemGreen(item, 0);
-      return;
+      // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+      // ledItemGreen(item, 0);
     }
 
-    // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    // ledItemGreen(item, 1);
+    LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+    ledItemGreen(item, 1);
     return;
   }
 
@@ -1443,9 +1442,8 @@ void vendingCollect(){
     LOG_DEBUG("HARDWARE: Lock Items");
     if (itemUnlockedState) {
       itemLock(item);
-      // ledItemGreen(item, 1);
+      ledItemGreen(item, 0);
     }
-    ledItemGreen(item, 0);
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timer started");
     LOG_DEBUG("HARDWARE: Change Item LED to static (in case blinking for open item)");
@@ -1474,8 +1472,8 @@ void vendingCollect(){
       timerServerTimeout.stop();
       //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
       if (activeScreen != 3) {
-        lv_screen_load(ui_EndScreen);
-        activeScreen = 3;
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
       }
       lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
       lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
@@ -1941,5 +1939,10 @@ void setup()
 
 void loop()
 {
-  mainLoop();
+  for(int i = 0; i <= 10; i++) {
+    ledItemGreen(i, 0);
+    delay(2000);
+    ledOff();
+  }
+  // mainLoop();
 }
