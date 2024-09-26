@@ -82,7 +82,7 @@
 
 
 // Speaker Volume [0 - 255]
-#define SpeakerVolume 60
+#define SpeakerVolume 200
 // Speaker Frequency [in Hz]
 #define SpeakerFrequency 1000
 
@@ -1855,6 +1855,7 @@ void  systemSetup() {
   CoreS3.Speaker.stop();
 
   lv_screen_load(ui_MainScreen);  
+  timerSleep.start();
 }
 
 
