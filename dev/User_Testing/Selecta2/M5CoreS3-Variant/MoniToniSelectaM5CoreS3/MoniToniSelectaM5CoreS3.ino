@@ -64,7 +64,7 @@
 // #define CarrouselDELAY 100
 #define CarrouselDELAY 0
 #define UserInputDELAY 5000
-#define SleepDELAY 60000
+#define SleepDELAY 120000
 #define debounceTurnButton 1
 #define debounceOpenButton 1
 #define debounceDoor 10
@@ -78,7 +78,7 @@
 
 
 // Proximity Sensor
-#define ProximityThreshold 3
+#define ProximityThreshold 2
 
 
 // Speaker Volume [0 - 255]
@@ -496,14 +496,15 @@ static void ledStatic (int firstLED, int lastLED, int color) {
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed) {
-  LOG_TRACE("LOGIC: ledBlink");
   // blink leds using previousTimeBlink to keep track of time passed and speed in ms from firstLED to lastLED with BRIGHTNESS and color
   if (millis() - previousTimeBlink > speed) {
     if (!blinkOn) {
+      LOG_TRACE("LOGIC: ledBlink On");
       ledStatic(firstLED, lastLED, color);
       blinkOn = true;
     }
     else {
+      LOG_TRACE("LOGIC: ledBlink Off");
       ledStatic(firstLED, lastLED, 0);
       blinkOn = false;
     }
@@ -1528,6 +1529,8 @@ void vendingFinished() {
     }
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
+    return;
+    ledItemGreen(item, 1);
   }
   
   if (!doorOpenState) {
@@ -1923,7 +1926,7 @@ void mainLoop() {
   vending(vendingState);
 
   //restart esp daily
-  if (globalHour == 1 && globalMinute == 45 && millis() >= 20000 ) {
+  if (globalHour == 1 && globalMinute == 45 && millis() >= 50000 ) {
     Serial.println("Daily Reset");
     ESP.restart();
   }

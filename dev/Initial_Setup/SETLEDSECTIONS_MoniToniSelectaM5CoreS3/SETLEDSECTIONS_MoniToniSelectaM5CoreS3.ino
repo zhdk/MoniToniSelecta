@@ -12,7 +12,7 @@
 #define DEBUGLOG_DEFAULT_LOG_LEVEL_DEBUG
 
 // set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_FILE_LEVEL_ERROR
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
 
 // choose one of the two debug preambles
 // default preamble with file & codeline information about debug source
@@ -497,17 +497,21 @@ static void ledStatic (int firstLED, int lastLED, int color) {
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed) {
   LOG_TRACE("LOGIC: ledBlink");
+  Serial.println("blink function triggered");
   // blink leds using previousTimeBlink to keep track of time passed and speed in ms from firstLED to lastLED with BRIGHTNESS and color
   if (millis() - previousTimeBlink > speed) {
     if (!blinkOn) {
       ledStatic(firstLED, lastLED, color);
       blinkOn = true;
+      Serial.println("blink on");
     }
     else {
       ledStatic(firstLED, lastLED, 0);
       blinkOn = false;
+      Serial.println("blink off");
     }
     previousTimeBlink = millis();
+    Serial.println("blink time reset");
   }
 }
 
@@ -531,7 +535,7 @@ static void ledOff () {
 
 static void ledItemGreen (int itemLED, bool blink) {
   if (blink) {
-    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1, BLINKRATE);   //_LEDGREEN blink green on itemLED
+    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2, BLINKRATE);   //_LEDGREEN blink green on itemLED
     return;
   }
   else {
@@ -1939,10 +1943,13 @@ void setup()
 
 void loop()
 {
-  for(int i = 0; i <= 10; i++) {
-    ledItemGreen(i, 0);
-    delay(2000);
-    ledOff();
-  }
+  CoreS3.update();
+  // ledItemGreen(1,0);
+  ledBlink(0, 200, 2, 500); 
+  // for(int i = 0; i <= 10; i++) {
+  //   ledItemGreen(i, 0);
+  //   delay(2000);
+  //   ledOff();
+  // }
   // mainLoop();
 }
