@@ -9,10 +9,10 @@
 #define DEBUGLOG_ENABLE_FILE_LOGGER
 
 // set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_LOG_LEVEL_DEBUG
+#define DEBUGLOG_DEFAULT_LOG_LEVEL_INFO
 
 // set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_FILE_LEVEL_ERROR
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_INFO
 
 // choose one of the two debug preambles
 // default preamble with file & codeline information about debug source
@@ -707,7 +707,7 @@ bool permissionRequest()
     //timerPurchaseTimeout.stop();
     // Disconnect
     client.stop();
-    LOG_INFO("INFO: No Permission");
+    LOG_DEBUG("INFO: No Permission");
     return 0;
   }
 }
@@ -1133,7 +1133,7 @@ void vendingSleep() {
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
-    LOG_INFO("STATE: Switching to Idle State");
+    LOG_DEBUG("STATE: Switching to Idle State");
     lv_screen_load(ui_MainScreen);
     proximityTriggered = false;
     return;
@@ -1159,7 +1159,7 @@ void vendingIdle() {
     timerSleep.stop();
     LOG_DEBUG("TIMER: Sleep Timer stopped");
     vendingState = 0; // Sleep
-    LOG_INFO("STATE: Switching to Sleep State");
+    LOG_DEBUG("STATE: Switching to Sleep State");
     return;
   }
 
@@ -1191,7 +1191,7 @@ void vendingIdle() {
   if (buttonTurnPushedState) {
     LOG_TRACE("LOGIC: Turn Button Pushed");
     vendingState = 2; // Turn
-    LOG_INFO("STATE: Switching to Turn State");
+    LOG_DEBUG("STATE: Switching to Turn State");
     return;
   }
 
@@ -1201,7 +1201,7 @@ void vendingIdle() {
     timerServerTimeout.stop();
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timeout Timer started");
-    LOG_INFO("STATE: Switching to Validate State");
+    LOG_DEBUG("STATE: Switching to Validate State");
     buttonOpenPushedState = false;
     if (activeScreen != 2) {
       lv_screen_load(ui_ValidationScreen);
@@ -1256,7 +1256,7 @@ void vendingTurn() {
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
-    LOG_INFO("STATE: Switching to Idle State");
+    LOG_DEBUG("STATE: Switching to Idle State");
     lv_screen_load(ui_MainScreen);
     return;
   }
@@ -1289,7 +1289,7 @@ void vendingValidate() {
     LOG_DEBUG("LOGIC: requestActive set to false");
     requestActive = false;
     vendingState = 6; // Error
-    LOG_INFO("STATE: Switching to Error State");
+    LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingValidate");
     return;
   }
   
@@ -1315,7 +1315,7 @@ void vendingValidate() {
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is false");
-    LOG_INFO("LOGIC: Starting Permission Request");
+    LOG_DEBUG("LOGIC: Starting Permission Request");
     permissionRequest();
     LOG_DEBUG("LOGIC: call permissionRequest");
     requestActive = true;
@@ -1349,7 +1349,7 @@ void vendingValidate() {
     requestActive = false;
     LOG_DEBUG("LOGIC: requestActive set to false");
     vendingState = 4; // Collect
-    LOG_INFO("STATE: Switching to Collect State");
+    LOG_DEBUG("STATE: Switching to Collect State");
     return;
   }
 }
@@ -1376,7 +1376,7 @@ void vendingCollect(){
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 6; // Error
-    LOG_INFO("STATE: Switching to Error State");
+    LOG_INFO("STATE: Switching to Error State - Permission denied in vendingCollect");
     return;
   }
 
@@ -1461,7 +1461,7 @@ void vendingCollect(){
       transactionActive = false;
       LOG_DEBUG("LOGIC: transactionActive set to false");
       vendingState = 5; // Finished
-      LOG_INFO("STATE: Switching to Finished State");
+      LOG_DEBUG("STATE: Switching to Finished State");
       return;
     }
     // else {
@@ -1490,7 +1490,7 @@ void vendingCollect(){
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
       vendingState = 6; // Error
-      LOG_INFO("STATE: Switching to Error State");
+      LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingCollect");
       return;
     }
   }
@@ -1585,7 +1585,7 @@ void vendingFinished() {
       timerSleep.start();
       LOG_DEBUG("TIMER: Sleep Timer started");
       vendingState = 1; // Idle
-      LOG_INFO("STATE: Switching to Idle State");
+      LOG_DEBUG("STATE: Switching to Idle State");
       lv_screen_load(ui_MainScreen);
       ledSetWhite();
       return;
@@ -1609,7 +1609,7 @@ void vendingFinished() {
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
       vendingState = 6; // Error
-      LOG_INFO("STATE: Switching to Error State");
+      LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingFinished");
       return;
     }
   }
@@ -1656,7 +1656,7 @@ void vendingError() {
   LOG_DEBUG("LOGIC: vendingActive set to false");
   vendingState = 1; // Idle
   lv_screen_load(ui_MainScreen);
-  LOG_INFO("STATE: Switching to Sleep State");
+  LOG_DEBUG("STATE: Switching to Sleep State");
 }
 
 
@@ -1878,7 +1878,7 @@ void mainLoop() {
   {
     delay(500);
     if (!wifiError) {
-      LOG_ERROR("ERROR: WIFI Connection lost");
+      LOG_ERROR("ERROR: WIFI Connection lost at ", globalHour, ":", globalMinute);
       LOG_TRACE("HARDWARE: Turn On Light to red");
       ledSetRed();
       //_GUI WIFI ERROR MESSAGE on StartUpScreen
@@ -1895,7 +1895,7 @@ void mainLoop() {
     }
   }
   if (wifiError) {
-    LOG_ERROR("ERROR: WIFI Connection re-established");
+    LOG_ERROR("ERROR: WIFI Connection re-established ", globalHour, ":", globalMinute);
     //_GUI MainScreen
     if (activeScreen != 1) {
       lv_screen_load(ui_MainScreen);
