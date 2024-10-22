@@ -1,0 +1,2 @@
+[ERROR]  ERROR: WIFI Connection lost
+[ERROR]  ERROR: WIFI Connection re-established

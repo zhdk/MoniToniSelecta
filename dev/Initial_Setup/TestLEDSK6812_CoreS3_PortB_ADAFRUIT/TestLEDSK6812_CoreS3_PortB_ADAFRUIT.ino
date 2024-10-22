@@ -1,13 +1,23 @@
 #include <Adafruit_NeoPixel.h>
+#include "M5CoreS3.h"
 #define PIN 9
 #define LED_COUNT 172
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_COUNT, PIN, NEO_RGB + NEO_KHZ800);
 
 void setup() {
+  auto cfg = M5.config();
+    CoreS3.begin(cfg);
   strip.begin();
   strip.setBrightness(50);
 
   strip.show(); // Initialize all pixels to 'off'
+   CoreS3.Display.setTextColor(GREEN);
+    CoreS3.Display.setTextDatum(middle_center);
+    CoreS3.Display.setFont(&fonts::Orbitron_Light_24);
+    CoreS3.Display.setTextSize(1);
+    CoreS3.Display.drawString("Ltr553 Init Fail",
+                                  CoreS3.Display.width() / 2,
+                                  CoreS3.Display.height() / 2);
 }
 
 void loop() {
