@@ -1858,7 +1858,7 @@ void  systemSetup() {
   CoreS3.Speaker.stop();
 
   lv_screen_load(ui_MainScreen);  
-  timerSleep.start();
+  // timerSleep.start();
 }
 
 
