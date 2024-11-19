@@ -9,10 +9,10 @@
 #define DEBUGLOG_ENABLE_FILE_LOGGER
 
 // set log level NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_LOG_LEVEL_INFO
+#define DEBUGLOG_DEFAULT_LOG_LEVEL_DEBUG
 
 // set log level for file output NONE, ERROR, WARN, INFO, DEBUG, TRACE
-#define DEBUGLOG_DEFAULT_FILE_LEVEL_INFO
+#define DEBUGLOG_DEFAULT_FILE_LEVEL_TRACE
 
 // choose one of the two debug preambles
 // default preamble with file & codeline information about debug source
@@ -78,11 +78,11 @@
 
 
 // Proximity Sensor
-#define ProximityThreshold 2
+#define ProximityThreshold 3
 
 
 // Speaker Volume [0 - 255]
-#define SpeakerVolume 200
+#define SpeakerVolume 60
 // Speaker Frequency [in Hz]
 #define SpeakerFrequency 1000
 
@@ -134,10 +134,9 @@
 #define LED_LEVEL_8_START 121
 #define LED_LEVEL_8_END 137
 #define LED_LEVEL_9_START 138
-#define LED_LEVEL_9_END 155
-#define LED_LEVEL_10_START 156
+#define LED_LEVEL_9_END 154
+#define LED_LEVEL_10_START 155
 #define LED_LEVEL_10_END 172
-
 
 
 
@@ -483,6 +482,7 @@ static void ledStatic (int firstLED, int lastLED, int color) {
   if (color == 0) {
     lightOnState = false;
     LedPixels.clear();
+    return;
   }
   else {
     lightOnState = true;
@@ -496,19 +496,22 @@ static void ledStatic (int firstLED, int lastLED, int color) {
 }
 
 static void ledBlink (int firstLED, int lastLED, int color, int speed) {
+  LOG_TRACE("LOGIC: ledBlink");
+  Serial.println("blink function triggered");
   // blink leds using previousTimeBlink to keep track of time passed and speed in ms from firstLED to lastLED with BRIGHTNESS and color
   if (millis() - previousTimeBlink > speed) {
     if (!blinkOn) {
-      LOG_TRACE("LOGIC: ledBlink On");
       ledStatic(firstLED, lastLED, color);
       blinkOn = true;
+      Serial.println("blink on");
     }
     else {
-      LOG_TRACE("LOGIC: ledBlink Off");
       ledStatic(firstLED, lastLED, 0);
       blinkOn = false;
+      Serial.println("blink off");
     }
     previousTimeBlink = millis();
+    Serial.println("blink time reset");
   }
 }
 
@@ -520,7 +523,7 @@ static void ledSetWhite () {
 
 static void ledSetRed () {
   //_LEDRED turn on all red
-  ledStatic(0, NUMPIXELS - 1, 1);
+  ledStatic(0, NUMPIXELS - 1, 2);
   //lightOnState = true;
 }
 
@@ -536,7 +539,7 @@ static void ledItemGreen (int itemLED, bool blink) {
     return;
   }
   else {
-    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2);   //_LEDGREEN turn on green on itemLED
+    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 1);   //_LEDGREEN turn on green on itemLED
   } 
 }
 
@@ -707,7 +710,7 @@ bool permissionRequest()
     //timerPurchaseTimeout.stop();
     // Disconnect
     client.stop();
-    LOG_DEBUG("INFO: No Permission");
+    LOG_INFO("INFO: No Permission");
     return 0;
   }
 }
@@ -1124,7 +1127,7 @@ void vendingSleep() {
       itemLock(i);
     }
   }
-  
+
   updateProximity();
 
   if (proximityTriggered) {
@@ -1133,7 +1136,7 @@ void vendingSleep() {
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
-    LOG_DEBUG("STATE: Switching to Idle State");
+    LOG_INFO("STATE: Switching to Idle State");
     lv_screen_load(ui_MainScreen);
     proximityTriggered = false;
     return;
@@ -1159,7 +1162,7 @@ void vendingIdle() {
     timerSleep.stop();
     LOG_DEBUG("TIMER: Sleep Timer stopped");
     vendingState = 0; // Sleep
-    LOG_DEBUG("STATE: Switching to Sleep State");
+    LOG_INFO("STATE: Switching to Sleep State");
     return;
   }
 
@@ -1191,7 +1194,7 @@ void vendingIdle() {
   if (buttonTurnPushedState) {
     LOG_TRACE("LOGIC: Turn Button Pushed");
     vendingState = 2; // Turn
-    LOG_DEBUG("STATE: Switching to Turn State");
+    LOG_INFO("STATE: Switching to Turn State");
     return;
   }
 
@@ -1201,7 +1204,7 @@ void vendingIdle() {
     timerServerTimeout.stop();
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timeout Timer started");
-    LOG_DEBUG("STATE: Switching to Validate State");
+    LOG_INFO("STATE: Switching to Validate State");
     buttonOpenPushedState = false;
     if (activeScreen != 2) {
       lv_screen_load(ui_ValidationScreen);
@@ -1256,7 +1259,7 @@ void vendingTurn() {
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 1; // Idle
-    LOG_DEBUG("STATE: Switching to Idle State");
+    LOG_INFO("STATE: Switching to Idle State");
     lv_screen_load(ui_MainScreen);
     return;
   }
@@ -1289,7 +1292,7 @@ void vendingValidate() {
     LOG_DEBUG("LOGIC: requestActive set to false");
     requestActive = false;
     vendingState = 6; // Error
-    LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingValidate");
+    LOG_INFO("STATE: Switching to Error State");
     return;
   }
   
@@ -1315,7 +1318,7 @@ void vendingValidate() {
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
     LOG_TRACE("LOGIC: transactionActive is false");
-    LOG_DEBUG("LOGIC: Starting Permission Request");
+    LOG_INFO("LOGIC: Starting Permission Request");
     permissionRequest();
     LOG_DEBUG("LOGIC: call permissionRequest");
     requestActive = true;
@@ -1349,7 +1352,7 @@ void vendingValidate() {
     requestActive = false;
     LOG_DEBUG("LOGIC: requestActive set to false");
     vendingState = 4; // Collect
-    LOG_DEBUG("STATE: Switching to Collect State");
+    LOG_INFO("STATE: Switching to Collect State");
     return;
   }
 }
@@ -1376,7 +1379,7 @@ void vendingCollect(){
     timerSleep.start();
     LOG_DEBUG("TIMER: Sleep Timer started");
     vendingState = 6; // Error
-    LOG_INFO("STATE: Switching to Error State - Permission denied in vendingCollect");
+    LOG_INFO("STATE: Switching to Error State");
     return;
   }
 
@@ -1406,13 +1409,12 @@ void vendingCollect(){
       lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
-      LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-      ledItemGreen(item, 0);
-      return;
+      // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+      // ledItemGreen(item, 0);
     }
 
-    // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    // ledItemGreen(item, 1);
+    LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
+    ledItemGreen(item, 1);
     return;
   }
 
@@ -1444,9 +1446,8 @@ void vendingCollect(){
     LOG_DEBUG("HARDWARE: Lock Items");
     if (itemUnlockedState) {
       itemLock(item);
-      // ledItemGreen(item, 1);
+      ledItemGreen(item, 0);
     }
-    ledItemGreen(item, 0);
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timer started");
     LOG_DEBUG("HARDWARE: Change Item LED to static (in case blinking for open item)");
@@ -1461,7 +1462,7 @@ void vendingCollect(){
       transactionActive = false;
       LOG_DEBUG("LOGIC: transactionActive set to false");
       vendingState = 5; // Finished
-      LOG_DEBUG("STATE: Switching to Finished State");
+      LOG_INFO("STATE: Switching to Finished State");
       return;
     }
     // else {
@@ -1475,8 +1476,8 @@ void vendingCollect(){
       timerServerTimeout.stop();
       //_GUI SERVER ERROR MESSAGE ON ENDSCREEN
       if (activeScreen != 3) {
-        lv_screen_load(ui_EndScreen);
-        activeScreen = 3;
+      lv_screen_load(ui_EndScreen);
+      activeScreen = 3;
       }
       lv_obj_add_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
       lv_obj_remove_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
@@ -1490,7 +1491,7 @@ void vendingCollect(){
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
       vendingState = 6; // Error
-      LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingCollect");
+      LOG_INFO("STATE: Switching to Error State");
       return;
     }
   }
@@ -1529,8 +1530,6 @@ void vendingFinished() {
     }
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
-    return;
-    ledItemGreen(item, 1);
   }
   
   if (!doorOpenState) {
@@ -1585,7 +1584,7 @@ void vendingFinished() {
       timerSleep.start();
       LOG_DEBUG("TIMER: Sleep Timer started");
       vendingState = 1; // Idle
-      LOG_DEBUG("STATE: Switching to Idle State");
+      LOG_INFO("STATE: Switching to Idle State");
       lv_screen_load(ui_MainScreen);
       ledSetWhite();
       return;
@@ -1609,7 +1608,7 @@ void vendingFinished() {
       timerServerTimeout.stop();
       LOG_DEBUG("TIMER: Server Timeout Timer stopped");
       vendingState = 6; // Error
-      LOG_INFO("STATE: Switching to Error State - Server Timeout in vendingFinished");
+      LOG_INFO("STATE: Switching to Error State");
       return;
     }
   }
@@ -1656,7 +1655,7 @@ void vendingError() {
   LOG_DEBUG("LOGIC: vendingActive set to false");
   vendingState = 1; // Idle
   lv_screen_load(ui_MainScreen);
-  LOG_DEBUG("STATE: Switching to Sleep State");
+  LOG_INFO("STATE: Switching to Sleep State");
 }
 
 
@@ -1858,7 +1857,6 @@ void  systemSetup() {
   CoreS3.Speaker.stop();
 
   lv_screen_load(ui_MainScreen);  
-  // timerSleep.start();
 }
 
 
@@ -1878,7 +1876,7 @@ void mainLoop() {
   {
     delay(500);
     if (!wifiError) {
-      LOG_ERROR("ERROR: WIFI Connection lost at ", globalHour, ":", globalMinute);
+      LOG_ERROR("ERROR: WIFI Connection lost");
       LOG_TRACE("HARDWARE: Turn On Light to red");
       ledSetRed();
       //_GUI WIFI ERROR MESSAGE on StartUpScreen
@@ -1895,7 +1893,7 @@ void mainLoop() {
     }
   }
   if (wifiError) {
-    LOG_ERROR("ERROR: WIFI Connection re-established ", globalHour, ":", globalMinute);
+    LOG_ERROR("ERROR: WIFI Connection re-established");
     //_GUI MainScreen
     if (activeScreen != 1) {
       lv_screen_load(ui_MainScreen);
@@ -1926,7 +1924,7 @@ void mainLoop() {
   vending(vendingState);
 
   //restart esp daily
-  if (globalHour == 1 && globalMinute == 45 && millis() >= 50000 ) {
+  if (globalHour == 1 && globalMinute == 45 && millis() >= 20000 ) {
     Serial.println("Daily Reset");
     ESP.restart();
   }
@@ -1945,5 +1943,13 @@ void setup()
 
 void loop()
 {
-  mainLoop();
+  CoreS3.update();
+  // ledItemGreen(1,0);
+  ledBlink(0, 200, 2, 500); 
+  // for(int i = 0; i <= 10; i++) {
+  //   ledItemGreen(i, 0);
+  //   delay(2000);
+  //   ledOff();
+  // }
+  // mainLoop();
 }

@@ -1,0 +1,6 @@
+[INFO]  DEBUG LOG FILE  -  Set Log Level in Definitions
+[INFO]  Setup Finished - Ready to use
+[ERROR]  ERROR: Unexpected response
+[ERROR]  ERROR: Status received:  HTTP/1.1 405 Method Not Allowed
+[INFO]  STATE: Switching to Error State - Server Timeout in vendingCollect
+[ERROR]  ERROR: Error State entered

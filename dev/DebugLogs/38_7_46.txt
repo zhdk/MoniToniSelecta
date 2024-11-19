@@ -1,0 +1,4 @@
+[INFO]  DEBUG LOG FILE  -  Set Log Level in Definitions
+[INFO]  Setup Finished - Ready to use
+[INFO]  STATE: Switching to Error State - Server Timeout in vendingValidate
+[ERROR]  ERROR: Error State entered

@@ -1,0 +1,5 @@
+[ERROR]  ERROR: Error State entered
+[ERROR]  ERROR: Error State entered
+[ERROR]  ERROR: Error State entered
+[ERROR]  ERROR: WIFI Connection lost
+[ERROR]  ERROR: WIFI Connection re-established

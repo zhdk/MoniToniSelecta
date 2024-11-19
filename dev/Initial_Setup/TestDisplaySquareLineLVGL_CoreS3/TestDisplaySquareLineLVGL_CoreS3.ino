@@ -22,6 +22,7 @@ void loop() {
   ui_ticker();
 
   CoreS3.update();
+  Serial.println(millis());
 
   //lvgl task handler
   lv_task_handler(); /* let the GUI do its work */
