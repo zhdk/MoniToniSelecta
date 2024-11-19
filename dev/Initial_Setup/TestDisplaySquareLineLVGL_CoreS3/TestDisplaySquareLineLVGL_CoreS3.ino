@@ -6,20 +6,18 @@
 #include <M5CoreS3.h>
 #include <ui.h>
 
-void setup()
-{
+void setup() {
   auto cfg = M5.config();
   CoreS3.begin(cfg);
 
-  Serial.begin( 115200 );
+  Serial.begin(115200);
 
   ui_setup();
 
-  Serial.println( "Setup done" );
+  Serial.println("Setup done");
 }
 
-void loop()
-{
+void loop() {
   //lvgl ui ticker
   ui_ticker();
 
