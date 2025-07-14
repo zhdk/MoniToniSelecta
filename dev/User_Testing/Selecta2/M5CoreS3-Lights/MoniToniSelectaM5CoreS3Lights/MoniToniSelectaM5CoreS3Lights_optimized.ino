@@ -2,7 +2,6 @@
 // Hardware Iteration: M5CoreS3 Microcontroller & Waveshare 32CH Modbus RTU Relay Board
 
 
-
 // ============================================================================
 // MONITONI VENDING MACHINE CONTROLLER
 // Hardware: M5CoreS3 + Waveshare 32CH Modbus RTU Relay Board
