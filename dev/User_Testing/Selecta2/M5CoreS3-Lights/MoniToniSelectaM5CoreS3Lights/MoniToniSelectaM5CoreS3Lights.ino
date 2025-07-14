@@ -24,6 +24,8 @@
 // PRINT and PRINTLN are always valid even in Release Mode
 // #define DEBUGLOG_DISABLE_LOG
 
+#define WIFI_RESTART_COUNTER 120  // Restart WiFi after 120 seconds if no connection is established
+
 
 // SD Card
 #define SD_SPI_SCK_PIN  36
@@ -36,7 +38,7 @@
 #define TX_PIN_SERIAL2 17
 
 // PINS IN
-// #define Door_PIN 8   //GPIO 8 - M5CoreS3
+#define Door_PIN 8   //GPIO 8 - M5CoreS3
 // #define ButtonTurn_PIN 48 
 // #define ButtonOpen_PIN 21 
 
@@ -57,7 +59,18 @@
 #define Motor_CH 14  //Relay 14
 #define Relay15_CH 15  //Relay 15
 #define Relay16_CH 16  //Relay 16
-// #define Error_PIN 47 //Yellow
+#define Item_1_Light_Green 32 //Relay 17
+#define Item_2_Light_Green 31 //Relay 18
+#define Item_3_Light_Green 30 //Relay 19  
+#define Item_4_Light_Green 29 //Relay 20
+#define Item_5_Light_Green 28 //Relay 21
+#define Item_6_Light_Green 27 //Relay 22
+#define Item_7_Light_Green 26 //Relay 23
+#define Item_8_Light_Green 25 //Relay 24
+#define Item_9_Light_Green 24 //Relay 25
+#define Item_10_Light_Green 23 //Relay 26
+#define Red_Light_CH 22 //Relay 27
+#define White_Light_CH 21 //Relay 28
 
 
 // Delays (in microseconds)
@@ -82,14 +95,14 @@
 
 
 // Speaker Volume [0 - 255]
-#define SpeakerVolume 200
+#define SpeakerVolume 20
 // Speaker Frequency [in Hz]
-#define SpeakerFrequency 1000
+#define SpeakerFrequency 600
 
 
 // Graphics
 // Display Brightness [0 - 100]
-#define TFT_BRIGHTNESS 90
+#define TFT_BRIGHTNESS 75
 // Screen Resolution
 #define TFT_HOR_RES   240
 #define TFT_VER_RES   320
@@ -100,47 +113,6 @@
 //uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
 #define READINGDELAY 8000
-
-// LED Hub Port
-#define CONNECTEDHUBPORT 0
-
-// LED PIXEL COUNT
-#define LED_PIN 9
-
-// LED PIXEL COUNT
-#define NUMPIXELS 172
-
-// LED BRIGHTNESS [0 - 255]
-#define BRIGHTNESS 60
-
-// LED BLINKRATE
-#define BLINKRATE 500
-
-// LED MAPPING
-#define LED_LEVEL_1_START 0
-#define LED_LEVEL_1_END 17
-#define LED_LEVEL_2_START 18
-#define LED_LEVEL_2_END 34
-#define LED_LEVEL_3_START 35
-#define LED_LEVEL_3_END 51
-#define LED_LEVEL_4_START 52
-#define LED_LEVEL_4_END 68
-#define LED_LEVEL_5_START 69
-#define LED_LEVEL_5_END 85
-#define LED_LEVEL_6_START 86
-#define LED_LEVEL_6_END 103
-#define LED_LEVEL_7_START 104
-#define LED_LEVEL_7_END 120
-#define LED_LEVEL_8_START 121
-#define LED_LEVEL_8_END 137
-#define LED_LEVEL_9_START 138
-#define LED_LEVEL_9_END 155
-#define LED_LEVEL_10_START 156
-#define LED_LEVEL_10_END 172
-
-
-
-
 
 
 // _____________Library Imports_____________
@@ -160,8 +132,6 @@
 // WiFiClientSecure.h by Espressif Systems [2.0.11] (esp32 Boards Version)
 #include <WiFiClientSecure.h>
 
-// Wire.h for PBHUB I2C Communication
-#include <Wire.h>
 
 // debounce.h by Aaron Kimball [0.2.0]
 #include <debounce.h>
@@ -187,13 +157,6 @@
 // Credentials File
 #include "credentials.h"
 
-// // PBHUB Class
-// #include "porthub.h"
-
-// PBHUB, M5 [1.0.0]
-#include <M5UnitPbHub.h>
-
-#include <Adafruit_NeoPixel.h>
 
 // _____________variables_____________
 
@@ -246,42 +209,6 @@ unsigned long lastTickMillis = 0;   // Tick Variable for
 lv_display_t * disp;                //display instance
 
 uint16_t read_ps_value;   // Porximity Sensor Value
-
-// PortHub porthub;  // PBHUB Instance
-M5UnitPbHub pbhub;
-
-// Pixel Instance - set number of LEDs, pin number, LED type.
-Adafruit_NeoPixel LedPixels = Adafruit_NeoPixel(
-    NUMPIXELS, LED_PIN,
-    NEO_RGB + NEO_KHZ800);  
-
-
-const int LEDMAPPING_LEVELS[10][2] = {
-  {LED_LEVEL_1_START, LED_LEVEL_1_END},
-  {LED_LEVEL_2_START, LED_LEVEL_2_END},
-  {LED_LEVEL_3_START, LED_LEVEL_3_END},
-  {LED_LEVEL_4_START, LED_LEVEL_4_END},
-  {LED_LEVEL_5_START, LED_LEVEL_5_END},
-  {LED_LEVEL_6_START, LED_LEVEL_6_END},
-  {LED_LEVEL_7_START, LED_LEVEL_7_END},
-  {LED_LEVEL_8_START, LED_LEVEL_8_END},
-  {LED_LEVEL_9_START, LED_LEVEL_9_END},
-  {LED_LEVEL_10_START, LED_LEVEL_10_END}
-};
-
-const int LED_COLORS[8][3] = {
-  {0, 0, 0},    // OFF
-  {0, 255, 0},  // GREEN
-  {255, 0, 0},   // RED
-  {0, 0, 255},    // BLUE
-  {255, 255, 0},  // YELLOW
-  {255, 0, 255},   // MAGENTA
-  {0, 255, 255},    // CYAN
-  {255, 255, 255}  // WHITE
-};
-
-volatile int previousTimeBlink = 0;
-volatile bool blinkOn = false; 
 
 
 // _____________instances_____________
@@ -398,22 +325,133 @@ void motorOff()
   motorOnState = false;
 }
 
-
 void lightOn()
 {
   LOG_DEBUG("HARDWARE: Light On deactivated!");
-  // sendModbusOpen(Light_CH);
-  // LOG_TRACE("LOGIC: lightOnState set to true");
-  // lightOnState = true;
+  sendModbusOpen(White_Light_CH);
+  LOG_TRACE("LOGIC: lightOnState set to true");
+  lightOnState = true;
 }
 
 void lightOff()
 {
   LOG_DEBUG("HARDWARE: Light Off deactivated!");
-  // sendModbusClose(Light_CH);
-  // LOG_TRACE("LOGIC: lightOnState set to false");
-  // lightOnState = false;
+  sendModbusClose(White_Light_CH);
+  LOG_TRACE("LOGIC: lightOnState set to false");
+  lightOnState = false;
 }
+
+void lightOnError()
+{
+  sendModbusOpen(Red_Light_CH);
+  LOG_TRACE("LOGIC: errorOnState set to true");
+  errorOnState = true;
+}
+
+void lightOffError()
+{
+  sendModbusClose(Red_Light_CH);
+  LOG_TRACE("LOGIC: errorOnState set to false");
+  errorOnState = false;
+}
+
+void lightItemControl(int item, bool state)
+{
+  switch (item) {
+    case 1:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 1 Light Green On");
+        sendModbusOpen(Item_1_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 1 Light Green Off");
+        sendModbusClose(Item_1_Light_Green);
+      }
+      break;
+    case 2:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 2 Light Green On");
+        sendModbusOpen(Item_2_Light_Green);
+      } else {
+        sendModbusClose(Item_2_Light_Green);
+      }
+      break;
+    case 3:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 3 Light Green On");
+        sendModbusOpen(Item_3_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 3 Light Green Off");
+        sendModbusClose(Item_3_Light_Green);
+      }
+      break;
+    case 4:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 4 Light Green On");
+        sendModbusOpen(Item_4_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 4 Light Green Off");
+        sendModbusClose(Item_4_Light_Green);
+      }
+      break;
+    case 5:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 5 Light Green On");
+        sendModbusOpen(Item_5_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 5 Light Green Off");
+        sendModbusClose(Item_5_Light_Green);
+      }
+      break;
+    case 6:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 6 Light Green On");
+        sendModbusOpen(Item_6_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 6 Light Green Off");
+        sendModbusClose(Item_6_Light_Green);
+      }
+      break;
+    case 7:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 7 Light Green On");
+        sendModbusOpen(Item_7_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 7 Light Green Off");
+        sendModbusClose(Item_7_Light_Green);
+      }
+      break;
+    case 8:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 8 Light Green On");
+        sendModbusOpen(Item_8_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 8 Light Green Off");
+        sendModbusClose(Item_8_Light_Green);
+      }
+      break;
+    case 9:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 9 Light Green On");
+        sendModbusOpen(Item_9_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 9 Light Green Off");
+        sendModbusClose(Item_9_Light_Green);
+      }
+      break;
+    case 10:
+      if (state) {
+        LOG_TRACE("HARDWARE: Item 10 Light Green On");
+        sendModbusOpen(Item_10_Light_Green);
+      } else {
+        LOG_TRACE("HARDWARE: Item 10 Light Green Off");
+        sendModbusClose(Item_10_Light_Green);
+      }
+      break;
+    default:
+      LOG_ERROR("ERROR: Invalid item number for light control");
+  }
+}
+
 
 
 void sireneOn()
@@ -450,21 +488,17 @@ void itemLock(int item)
 
 
 /////////////////////////////////////Based on system Setup included in main file
-// static Button buttonTurnSwitch(0, buttonTurnSwitchHandler);
 // static Button doorSwitch(1, doorSwitchHandler);
-// static Button buttonOpenSwitch(3, buttonOpenSwitchHandler);
 
 
 static void updateSwitchInputs() {
   // update() will call buttonHandler() if PIN transitions to a new state and stays there
   // for multiple reads over 25+ ms.
   if (vendingState == 4 || vendingState == 5) {
-    int buttonSignal = pbhub.digitalRead(CONNECTEDHUBPORT, 0);
+    int buttonSignal = digitalRead(Door_PIN);
     doorSwitch.update(buttonSignal);
     return;
   }
-  // buttonTurnSwitch.update(digitalRead(ButtonTurn_PIN));
-  // buttonOpenSwitch.update(digitalRead(ButtonOpen_PIN));
 }
 
 static void updateProximity() {
@@ -476,68 +510,6 @@ static void updateProximity() {
   else {
     proximityTriggered = false;
   }
-}
-
-//base function to controll leds
-static void ledStatic (int firstLED, int lastLED, int color) {
-  if (color == 0) {
-    lightOnState = false;
-    LedPixels.clear();
-  }
-  else {
-    lightOnState = true;
-    LedPixels.setBrightness(BRIGHTNESS);
-    LedPixels.fill(LedPixels.Color(LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]), firstLED, lastLED - firstLED + 1);
-  }
-  LedPixels.show();
-  // //_LEDSTATIC set LEDs in color from firstLED to lastLED with BRIGHTNESS
-  // porthub.hub_wire_setBrightness(HUB_ADDR[CONNECTEDHUBPORT], BRIGHTNESS);
-  // porthub.hub_wire_fill_color(HUB_ADDR[CONNECTEDHUBPORT], firstLED, lastLED - firstLED + 1, LED_COLORS[color][0], LED_COLORS[color][1], LED_COLORS[color][2]);
-}
-
-static void ledBlink (int firstLED, int lastLED, int color, int speed) {
-  // blink leds using previousTimeBlink to keep track of time passed and speed in ms from firstLED to lastLED with BRIGHTNESS and color
-  if (millis() - previousTimeBlink > speed) {
-    if (!blinkOn) {
-      LOG_TRACE("LOGIC: ledBlink On");
-      ledStatic(firstLED, lastLED, color);
-      blinkOn = true;
-    }
-    else {
-      LOG_TRACE("LOGIC: ledBlink Off");
-      ledStatic(firstLED, lastLED, 0);
-      blinkOn = false;
-    }
-    previousTimeBlink = millis();
-  }
-}
-
-static void ledSetWhite () {
-  //_LEDWHITE turn on all white
-  ledStatic(0, NUMPIXELS - 1, 7);
-  //lightOnState = true;
-}
-
-static void ledSetRed () {
-  //_LEDRED turn on all red
-  ledStatic(0, NUMPIXELS - 1, 1);
-  //lightOnState = true;
-}
-
-static void ledOff () {
-  //_LED turn all off
-  ledStatic(0, NUMPIXELS - 1, 0);
-  lightOnState = false;
-}
-
-static void ledItemGreen (int itemLED, bool blink) {
-  if (blink) {
-    ledBlink(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2, BLINKRATE);   //_LEDGREEN blink green on itemLED
-    return;
-  }
-  else {
-    ledStatic(LEDMAPPING_LEVELS[itemLED - 1][0], LEDMAPPING_LEVELS[itemLED - 1][1], 2);   //_LEDGREEN turn on green on itemLED
-  } 
 }
 
 
@@ -1110,9 +1082,8 @@ void vendingSleep() {
     motorOff();
   }
   if (lightOnState) {
-    LOG_TRACE("HARDWARE: Turn Off LED");
-    // lightOff();
-    ledOff();
+    LOG_TRACE("HARDWARE: Turn Off Light");
+    lightOff();
   }
   if (sireneOnState) {
     LOG_TRACE("HARDWARE: Turn Off Sirene");
@@ -1173,8 +1144,7 @@ void vendingIdle() {
   }
   if (!lightOnState) {
     LOG_TRACE("HARDWARE: Turn On LED");
-    // lightOn();
-    ledSetWhite();
+    lightOn();
   }
   if (sireneOnState) {
     LOG_TRACE("HARDWARE: Turn Off Sirene");
@@ -1406,13 +1376,12 @@ void vendingCollect(){
       lv_obj_remove_flag(ui_UserOpenActionLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
-      LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-      ledItemGreen(item, 0);
+      LOG_DEBUG("HARDWARE: Turn on LED for item");
+      lightItemControl(item, 1);
       return;
     }
-
-    // LOG_DEBUG("HARDWARE: Turn on Item LED w/ possible blinking");
-    // ledItemGreen(item, 1);
+    // Turn on LED for item
+    LOG_TRACE("LOGIC: itemUnlockedState is true");
     return;
   }
 
@@ -1444,9 +1413,8 @@ void vendingCollect(){
     LOG_DEBUG("HARDWARE: Lock Items");
     if (itemUnlockedState) {
       itemLock(item);
-      // ledItemGreen(item, 1);
     }
-    ledItemGreen(item, 0);
+    lightItemControl(item, 0);
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timer started");
     LOG_DEBUG("HARDWARE: Change Item LED to static (in case blinking for open item)");
@@ -1530,7 +1498,6 @@ void vendingFinished() {
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
     return;
-    ledItemGreen(item, 1);
   }
   
   if (!doorOpenState) {
@@ -1561,7 +1528,7 @@ void vendingFinished() {
     }
     timerDoorOpen.stop();
     LOG_DEBUG("TIMER: Door Open Timer stopped");
-    ledSetWhite ();
+     lightOn();
     if ( closeRequest() ) {
       //_GUI CompleteTransactionLabel on EndingScreen
       //_GUI ThankYouLabel on EndingScreen
@@ -1587,7 +1554,7 @@ void vendingFinished() {
       vendingState = 1; // Idle
       LOG_DEBUG("STATE: Switching to Idle State");
       lv_screen_load(ui_MainScreen);
-      ledSetWhite();
+      lightOn();
       return;
     }
     if (timerServerTimeout.read() > ServerTimeout) {
@@ -1642,12 +1609,11 @@ void vendingError() {
     }
   }
   
-  //_LEDRED turn on all leds red
-  LOG_TRACE("HARDWARE: Turn On Light to red");
-  ledSetRed();
+  LOG_TRACE("HARDWARE: Turn On Error Light");
+  lightOnError();
   delay(ErrorDELAY);
-  ledSetWhite();
-  // lightOn();
+  lightOffError();
+  lightOn();
 
   transactionActive = false;
   LOG_DEBUG("LOGIC: requestActive set to false");
@@ -1656,7 +1622,7 @@ void vendingError() {
   LOG_DEBUG("LOGIC: vendingActive set to false");
   vendingState = 1; // Idle
   lv_screen_load(ui_MainScreen);
-  LOG_DEBUG("STATE: Switching to Sleep State");
+  LOG_DEBUG("STATE: Switching to Idle State");
 }
 
 
@@ -1713,14 +1679,6 @@ void  systemSetup() {
   // Initialize Serial port
   Serial.begin(115200);
   Serial.println();
-
-  // Initialize PBHUB
-  if (!pbhub.begin(&Wire, UNIT_PBHUB_I2C_ADDR, 2, 1, 400000U)) {
-        Serial.println("Couldn't find Pbhub");
-        while (1) delay(1);
-  }
-  // porthub.begin();
-  // porthub.hub_wire_length(HUB_ADDR[CONNECTEDHUBPORT], NUMPIXELS);
 
   //UI & Display Initialization
   ui_setup();
@@ -1876,11 +1834,11 @@ void mainLoop() {
   //check wifi connection
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(1000);
     if (!wifiError) {
       LOG_ERROR("ERROR: WIFI Connection lost at ", globalHour, ":", globalMinute);
       LOG_TRACE("HARDWARE: Turn On Light to red");
-      ledSetRed();
+      lightOnError();
       //_GUI WIFI ERROR MESSAGE on StartUpScreen
       if (activeScreen != 0) {
         lv_screen_load(ui_StartUpScreen);
@@ -1891,9 +1849,18 @@ void mainLoop() {
       lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
-      wifiError = true;
+
+      // Counter for connection attempts before restart
+      static int wifiCounter = 0;
+
+      wifiError = true; // Set wifiError to true to avoid multiple error messages
     }
+    wifiverCounter++;
+    if (wifiverCounter > WIFI_RESTART_COUNTER) {
+      ESP.restart();
   }
+
+  // if wifi connection is re-established
   if (wifiError) {
     LOG_ERROR("ERROR: WIFI Connection re-established ", globalHour, ":", globalMinute);
     //_GUI MainScreen
