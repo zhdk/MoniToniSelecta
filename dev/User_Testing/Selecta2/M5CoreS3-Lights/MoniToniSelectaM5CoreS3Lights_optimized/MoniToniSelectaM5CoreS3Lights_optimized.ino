@@ -62,17 +62,10 @@
 #define Item_10_Light_Green 23 // Relay 26
 
 // Status Light Relays
-#define Red_Light_CH 22    // Relay 27 (Error indicator)
-#define White_Light_CH 21  // Relay 28 (Main illumination)
+#define Red_Light_CH 17    // 
+#define White_Light_CH 18  // 
+#define Blue_Light_CH 19  // 
 
-// Unused Relays
-#define Relay11_CH 11    // Unused
-#define Relay15_CH 15    // Unused
-#define Relay16_CH 16    // Unused
-#define Relay17_CH 17    // Unused
-#define Relay18_CH 18    // Unused
-#define Relay19_CH 19    // Unused
-#define Relay20_CH 20    // Unused
 
 // _____________TIMING CONSTANTS (milliseconds)_____________
 #define CarrouselDELAY 0
@@ -116,6 +109,7 @@
 #include <debounce.h>              // debounce by Aaron Kimball [0.2.0]
 
 // Network and JSON
+//#include <WiFi.h>
 #include <WiFiClientSecure.h>      // WiFiClientSecure by Espressif [2.0.11]
 #include <ArduinoJson.h>           // ArduinoJson by Benoit Blanchon [7.0.3]
 
@@ -1135,9 +1129,6 @@ void systemSetup() {
     Serial.println("SD Card initialization failed");
   }
 
-  // Initialize LED pixels (if available)
-  LedPixels.begin();
-
   // Initialize Modbus communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
   
@@ -1246,8 +1237,8 @@ void setupSensorsAndAudio() {
 
 void initializeHardwareState() {
   // Turn off unused relays
-  sendModbusClose(Relay15_CH);
-  sendModbusClose(Relay16_CH);
+  //sendModbusClose(Relay15_CH);
+  //sendModbusClose(Relay16_CH);
   LOG_TRACE("SETUP: Unused relays disabled");
 }
 

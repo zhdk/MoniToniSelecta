@@ -73,6 +73,9 @@
 #define White_Light_CH 21 //Relay 28
 
 
+#define Blue_Light_CH 19  // 
+
+
 // Delays (in microseconds)
 // #define CarrouselDELAY 100
 #define CarrouselDELAY 0
@@ -108,7 +111,7 @@
 #define TFT_VER_RES   320
 
 /*LVGL draw into this buffer, 1/10 screen size usually works well. The size is in bytes*/
-// #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
+//#define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 8 * (LV_COLOR_DEPTH / 8))
 //uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
@@ -130,8 +133,8 @@
 #include <SPI.h>
 
 // WiFiClientSecure.h by Espressif Systems [2.0.11] (esp32 Boards Version)
+//#include <WiFi.h>
 #include <WiFiClientSecure.h>
-
 
 // debounce.h by Aaron Kimball [0.2.0]
 #include <debounce.h>
@@ -630,8 +633,8 @@ bool permissionRequest()
 
   // Allocate the JSON document
   // Use https://arduinojson.org/v6/assistant to compute the capacity.
-  const size_t capacity = JSON_OBJECT_SIZE(1) + JSON_ARRAY_SIZE(2) + 60;
-  DynamicJsonDocument doc(capacity);
+  
+  JsonDocument doc;
 
   // Parse JSON object
   DeserializationError error = deserializeJson(doc, client);
@@ -927,34 +930,61 @@ bool closeRequest()
 }
 
 
-
 // _____________ui setup_____________
 
 void ui_setup() {
   draw_buf_1 = heap_caps_malloc(DRAW_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+  
+  if (draw_buf_1 == NULL) {
+    Serial.println("ERROR: Failed to allocate draw buffer");
+    return;
+  }
 
   lv_init();
 
   disp = lv_tft_espi_create(TFT_HOR_RES, TFT_VER_RES, draw_buf_1, DRAW_BUF_SIZE);
+  
+  if (disp == NULL) {
+    Serial.println("ERROR: Failed to create display");
+    return;
+  }
 
   lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
 
   lv_indev_t *indev = lv_indev_create();
-  lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
-  lv_indev_set_read_cb(indev, my_touchpad_read);
+  if (indev != NULL) {
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER); /*Touchpad should have POINTER type*/
+    lv_indev_set_read_cb(indev, my_touchpad_read);
+  }
 
   ui_init();
 
-  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonPressed, LV_EVENT_PRESSED, NULL);
-  lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonReleased, LV_EVENT_RELEASED, NULL);
-  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonPressed, LV_EVENT_PRESSED, NULL);
-  lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonReleased, LV_EVENT_RELEASED, NULL);
+  // Add null checks for UI objects before setting callbacks
+  if (ui_ButtonSpin != NULL) {
+    lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonPressed, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(ui_ButtonSpin, onSpinButtonReleased, LV_EVENT_RELEASED, NULL);
+  }
+  
+  if (ui_ButtonOpen != NULL) {
+    lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonPressed, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(ui_ButtonOpen, onOpenButtonReleased, LV_EVENT_RELEASED, NULL);
+  }
 
-  lv_screen_load(ui_StartUpScreen);
-  lv_obj_add_state(ui_StartUpPanel, LV_STATE_CHECKED);
-  lv_obj_remove_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
-
+  if (ui_StartUpScreen != NULL) {
+    lv_screen_load(ui_StartUpScreen);
+  }
+  
+  if (ui_StartUpPanel != NULL) {
+    lv_obj_add_state(ui_StartUpPanel, LV_STATE_CHECKED);
+  }
+  
+  if (ui_SetupLabel != NULL) {
+    lv_obj_remove_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
+  }
+  
+  if (ui_StartUpErrorLabel != NULL) {
+    lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
+  }
 
   ui_ticker();
   lv_task_handler(); 
@@ -1249,7 +1279,7 @@ void vendingValidate() {
     lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
-    ledSetRed();
+    //ledSetRed();
     CoreS3.delay(READINGDELAY); //_GUI READINGDELAY
     LOG_TRACE("LOGIC: Server Timeout Timer larger then ServerTimeout");
     timerServerTimeout.stop();
@@ -1628,8 +1658,6 @@ void vendingError() {
 
 
 
-
-
 // _____________Finite State Machine - Possible States: 0 = Sleep / 1 = Idle / 2 = Turn / 3 = Validate / 4 = Collect / 5 = Finished / 6 = Error_____________
 
 void vending(int state) {
@@ -1692,10 +1720,14 @@ void  systemSetup() {
   }
 
   // Initialize LED Pixels
-  LedPixels.begin();
+  //LedPixels.begin();
 
   //Initialized Serial port for RS485 Communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
+  
+  // set input pin modes
+  LOG_TRACE("Set Input Pin Modes");
+  pinMode(Door_PIN, INPUT_PULLUP);
   
   // Connect WIFI
   Serial.print("Connecting to ");
@@ -1706,7 +1738,9 @@ void  systemSetup() {
   {
     delay(500);
     Serial.print(".");
-    lv_label_set_text(ui_SetupLabel, "Trying to connect to WiFi");
+    if (ui_SetupLabel != NULL) {
+      lv_label_set_text(ui_SetupLabel, "Trying to connect to WiFi");
+    }
     ui_ticker();
     lv_task_handler(); //_GUI ui handler
   }
@@ -1781,13 +1815,6 @@ void  systemSetup() {
   // relay16Off();
   // relay15Off();
 
-  // set input pin modes
-  LOG_TRACE("Set Input Pin Modes");
-  // pinMode(ButtonTurn_PIN, INPUT_PULLUP);
-  // pinMode(Door_PIN, INPUT_PULLUP);
-  // pinMode(ButtonOpen_PIN, INPUT_PULLUP);
-
-
   LOG_TRACE("Set Button Debounce Intervals");
   // buttonTurnSwitch.setPushDebounceInterval(debounceTurnButton);
   doorSwitch.setPushDebounceInterval(debounceDoor);
@@ -1815,7 +1842,9 @@ void  systemSetup() {
   // stop output sound.
   CoreS3.Speaker.stop();
 
-  lv_screen_load(ui_MainScreen);  
+  if (ui_MainScreen != NULL) {
+    lv_screen_load(ui_MainScreen);
+  }
   // timerSleep.start();
 }
 
@@ -1830,10 +1859,10 @@ void mainLoop() {
   //lvgl task handler
   lv_task_handler(); /* let the GUI do its work */
 
-
   //check wifi connection
   while (WiFi.status() != WL_CONNECTED)
   {
+    static int wifiCounter = 0;
     delay(1000);
     if (!wifiError) {
       LOG_ERROR("ERROR: WIFI Connection lost at ", globalHour, ":", globalMinute);
@@ -1850,14 +1879,12 @@ void mainLoop() {
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
 
-      // Counter for connection attempts before restart
-      static int wifiCounter = 0;
-
       wifiError = true; // Set wifiError to true to avoid multiple error messages
     }
-    wifiverCounter++;
-    if (wifiverCounter > WIFI_RESTART_COUNTER) {
+    wifiCounter++;
+    if (wifiCounter > WIFI_RESTART_COUNTER) {
       ESP.restart();
+    }
   }
 
   // if wifi connection is re-established
@@ -1876,18 +1903,11 @@ void mainLoop() {
   // Update M5CoreS3 base functions
   CoreS3.update();
 
-
   //update time
   now = time(nullptr);
   gmtime_r(&now, &timeinfo);
   globalHour = timeinfo.tm_hour;
   globalMinute = timeinfo.tm_min;
-  /*
-  Serial.print("Hour ");
-  Serial.println(globalHour);
-  Serial.print("Minute ");
-  Serial.println(globalMinute);
-  */
 
   //run state machine
   vending(vendingState);
