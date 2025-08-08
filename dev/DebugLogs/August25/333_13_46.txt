@@ -1,0 +1,8 @@
+[INFO]  DEBUG LOG FILE  -  Set Log Level in Definitions
+[INFO]  Setup Finished - Ready to use
+[ERROR]  ERROR: WIFI Connection lost at  11 : 59
+[ERROR]  ERROR: WIFI Connection re-established  11 : 59
+[INFO]  STATE: Switching to Error State - Server Timeout in vendingValidate
+[ERROR]  ERROR: Error State entered
+[ERROR]  ERROR: WIFI Connection lost at  21 : 58
+[ERROR]  ERROR: WIFI Connection re-established  21 : 58

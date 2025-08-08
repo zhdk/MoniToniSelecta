@@ -1,0 +1,2 @@
+[INFO]  DEBUG LOG FILE  -  Set Log Level in Definitions
+[INFO]  Setup Finished - Ready to use

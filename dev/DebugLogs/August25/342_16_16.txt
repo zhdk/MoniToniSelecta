@@ -1,0 +1,6 @@
+[INFO]  DEBUG LOG FILE  -  Set Log Level in Definitions
+[INFO]  Setup Finished - Ready to use
+[ERROR]  ERROR: WIFI Connection lost at  16 : 16
+[ERROR]  ERROR: WIFI Connection re-established  16 : 16
+[ERROR]  ERROR: WIFI Connection lost at  10 : 29
+[ERROR]  ERROR: WIFI Connection re-established  10 : 29

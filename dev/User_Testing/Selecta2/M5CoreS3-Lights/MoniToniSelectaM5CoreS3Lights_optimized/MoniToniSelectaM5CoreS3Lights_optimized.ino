@@ -132,7 +132,7 @@
 // _____________GLOBAL VARIABLES_____________
 
 // ===== STATE MACHINE VARIABLES =====
-volatile int vendingState = 1;     // 0=Sleep, 1=Idle, 2=Turn, 3=Validate, 4=Collect, 5=Finished, 6=Error
+volatile int vendingState = 1;     // 0=Sleep, 1=Idle, 2=Turn, 3=Validate, 4=Collect, 5=Finished, 6=Error, 7=NetworkError
 volatile int activeScreen = 0;     // 0=StartUp, 1=Main, 2=Validation, 3=End, 4=Sleep, 5=Error
 volatile int item;                 // Currently selected item number
 
@@ -155,6 +155,8 @@ volatile bool requestActive = false;
 volatile bool permission = false;
 volatile bool completed = false;
 volatile bool closed = false;
+// New: differentiate between valid denied and request errors
+volatile bool permissionRequestHadError = false;
 
 // ===== NETWORK CONFIGURATION =====
 const char *SSID = WIFI_SSID;
@@ -166,6 +168,9 @@ const String url_complete = "/api/vending/complete";
 const String url_close = "/api/vending/close";
 const String monitoni_terminal = TOKEN;
 volatile bool wifiError = false;
+// New: timers for reconnect and restart window
+volatile unsigned long wifiErrorStartMillis = 0;
+volatile unsigned long lastReconnectAttemptMillis = 0;
 
 // ===== TIME TRACKING =====
 volatile int globalHour;
@@ -388,15 +393,52 @@ void showServerErrorUI() {
   CoreS3.delay(READINGDELAY);
 }
 
+// New: explicit Denied UI helper
+void showDeniedUI() {
+  if (activeScreen != 3) {
+    lv_screen_load(ui_EndScreen);
+    activeScreen = 3;
+  }
+  // Show only "Denied" related labels
+  lv_obj_remove_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
+  ui_ticker();
+  lv_task_handler();
+  CoreS3.delay(READINGDELAY);
+}
+
 // _____________HTTP REQUEST FUNCTIONS_____________
 
 bool permissionRequest() {
+  // Check WiFi connection first
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: No WiFi connection for permission request - Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    vendingState = 7;  // Network error state
+    return false;
+  }
+
+  LOG_DEBUG("NETWORK: Attempting permission request - WiFi RSSI: ", WiFi.RSSI(), " dBm");
+
   // Connect to server
   if (!client.connect("monitoni.zhdk.ch", 443)) {
-    LOG_ERROR("ERROR: Connection failed - permission request");
+    LOG_ERROR("NETWORK: Server connection failed for permission request - WiFi Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    // Check if it's a network issue or server issue
+    if (WiFi.status() != WL_CONNECTED) {
+      LOG_ERROR("NETWORK: WiFi disconnected during permission request");
+      vendingState = 7;  // Network error state
+      return false;
+    }
+    LOG_ERROR("NETWORK: Server unreachable for permission request");
+    permissionRequestHadError = true;
     showServerErrorUI();
     return false;
   }
+
+  LOG_DEBUG("NETWORK: Connected to server for permission request");
 
   // Send HTTP request
   client.println(String("GET " + url_permission + " HTTP/1.0"));
@@ -407,6 +449,7 @@ bool permissionRequest() {
   if (client.println() == 0) {
     LOG_ERROR("ERROR: Failed to send permission request");
     client.stop();
+    permissionRequestHadError = true;
     showServerErrorUI();
     return false;
   }
@@ -418,6 +461,7 @@ bool permissionRequest() {
   if (strcmp(status + 9, "200 OK") != 0) {
     LOG_ERROR("ERROR: Unexpected response status: ", status);
     client.stop();
+    permissionRequestHadError = true;
     showServerErrorUI();
     return false;
   }
@@ -427,6 +471,7 @@ bool permissionRequest() {
   if (!client.find(endOfHeaders)) {
     LOG_ERROR("ERROR: Invalid response format");
     client.stop();
+    permissionRequestHadError = true;
     showServerErrorUI();
     return false;
   }
@@ -439,6 +484,7 @@ bool permissionRequest() {
   if (error) {
     LOG_ERROR("ERROR: JSON deserialization failed: ", error.f_str());
     client.stop();
+    permissionRequestHadError = true;
     showServerErrorUI();
     return false;
   }
@@ -454,6 +500,8 @@ bool permissionRequest() {
     LOG_DEBUG("SUCCESS: Permission granted for item ", item);
     return true;
   } else {
+    // Valid response but denied, not an error
+    permissionRequestHadError = false;
     transactionActive = false;
     LOG_DEBUG("INFO: Permission denied");
     return false;
@@ -464,12 +512,30 @@ bool completeRequest() {
   transactionActive = false;
   permission = false;
 
+  // Check WiFi connection first
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: No WiFi connection for complete request - Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    vendingState = 7;  // Network error state
+    return false;
+  }
+
+  LOG_DEBUG("NETWORK: Attempting complete request - WiFi RSSI: ", WiFi.RSSI(), " dBm");
+
   // Connect to server
   if (!client.connect("monitoni.zhdk.ch", 443)) {
-    LOG_ERROR("ERROR: Connection failed - complete request");
+    LOG_ERROR("NETWORK: Server connection failed for complete request - WiFi Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    // Check if it's a network issue or server issue
+    if (WiFi.status() != WL_CONNECTED) {
+      LOG_ERROR("NETWORK: WiFi disconnected during complete request");
+      vendingState = 7;  // Network error state
+      return false;
+    }
+    LOG_ERROR("NETWORK: Server unreachable for complete request");
     showServerErrorUI();
     return false;
   }
+
+  LOG_DEBUG("NETWORK: Connected to server for complete request");
 
   // Send HTTP request
   client.println(String("GET " + url_complete + " HTTP/1.0"));
@@ -515,12 +581,30 @@ bool closeRequest() {
   transactionActive = false;
   permission = false;
 
+  // Check WiFi connection first
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: No WiFi connection for close request - Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    vendingState = 7;  // Network error state
+    return false;
+  }
+
+  LOG_DEBUG("NETWORK: Attempting close request - WiFi RSSI: ", WiFi.RSSI(), " dBm");
+
   // Connect to server
   if (!client.connect("monitoni.zhdk.ch", 443)) {
-    LOG_ERROR("ERROR: Connection failed - close request");
+    LOG_ERROR("NETWORK: Server connection failed for close request - WiFi Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+    // Check if it's a network issue or server issue
+    if (WiFi.status() != WL_CONNECTED) {
+      LOG_ERROR("NETWORK: WiFi disconnected during close request");
+      vendingState = 7;  // Network error state
+      return false;
+    }
+    LOG_ERROR("NETWORK: Server unreachable for close request");
     showServerErrorUI();
     return false;
   }
+
+  LOG_DEBUG("NETWORK: Connected to server for close request");
 
   // Send HTTP request
   client.println(String("GET " + url_close + " HTTP/1.0"));
@@ -820,6 +904,8 @@ void vendingIdle() {
     vendingState = 3;  // Validate
     timerServerTimeout.stop();
     timerServerTimeout.start();
+    // Reset request error marker for this new validation attempt
+    permissionRequestHadError = false;
     buttonOpenPushedState = false;
     if (activeScreen != 2) {
       lv_screen_load(ui_ValidationScreen);
@@ -878,23 +964,18 @@ void vendingTurn() {
 
 
 void vendingValidate() {
+  // Check WiFi connection first
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: WiFi connection lost during validation - Status: ", WiFi.status(), " - Previous RSSI: ", WiFi.RSSI());
+    timerServerTimeout.stop();
+    vendingState = 7;  // Network error state
+    return;
+  }
+
   // Check for server timeout
   if (timerServerTimeout.read() > ServerTimeout) {
-    if (activeScreen != 3) {
-      lv_screen_load(ui_EndScreen);
-      activeScreen = 3;
-    }
-    lv_obj_remove_flag(ui_DeniedTransactionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_ErrorTransactionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_CompleteTransactionLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(ui_DeniedLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_ErrorLabel, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_ThankYouLabel, LV_OBJ_FLAG_HIDDEN);
-    ui_ticker();
-    lv_task_handler();
-    lightOnError();  // Use our function instead of ledSetRed()
-    CoreS3.delay(READINGDELAY);
-    
+    // Show only network error on timeout (not denied)
+    showServerErrorUI();
     timerServerTimeout.stop();
     transactionActive = false;
     requestActive = false;
@@ -903,18 +984,51 @@ void vendingValidate() {
     return;
   }
 
-  if (!transactionActive) {
+  // Start request if not active yet
+  if (!requestActive && !transactionActive) {
     // Show validation in progress
     setValidationScreenState(true, false, false, false, false, false);
-    
+
     LOG_DEBUG("NETWORK: Starting permission request");
-    permissionRequest();
+    bool ok = permissionRequest();
     requestActive = true;
+
+    // Handle result immediately to avoid showing both screens
+    if (!ok) {
+      // If WiFi dropped during request, NetworkError state is already set
+      if (WiFi.status() != WL_CONNECTED) {
+        return;
+      }
+      // If any error occurred while connected -> show only network error screen
+      if (permissionRequestHadError) {
+        timerServerTimeout.stop();
+        transactionActive = false;
+        requestActive = false;
+        showServerErrorUI();
+        vendingState = 6;  // Error
+        LOG_INFO("STATE: Permission request error - switching to Error");
+        return;
+      }
+      // Valid response but denied -> show only denied screen
+      showDeniedUI();
+      timerServerTimeout.stop();
+      transactionActive = false;
+      requestActive = false;
+      // Return to Idle
+      timerSleep.stop();
+      timerSleep.start();
+      vendingState = 1;
+      lv_screen_load(ui_MainScreen);
+      return;
+    }
+
+    // If ok -> permission granted; proceed below on next iteration
     return;
-  } else {
-    // Permission granted - proceed to collect
+  }
+
+  // Permission granted - proceed to collect
+  if (transactionActive) {
     setValidationScreenState(false, true, false, false, true, false);
-    
     timerServerTimeout.stop();
     requestActive = false;
     vendingState = 4;  // Collect
@@ -925,6 +1039,15 @@ void vendingValidate() {
 
 void vendingCollect() {
   updateSwitchInputs();
+
+  // Check WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: WiFi connection lost during collect phase - Status: ", WiFi.status(), " - Previous RSSI: ", WiFi.RSSI());
+    transactionActive = false;
+    requestActive = false;
+    vendingState = 7;  // Network error state
+    return;
+  }
 
   // Check if permission is still valid
   if (!permission) {
@@ -989,9 +1112,15 @@ void vendingCollect() {
   }
 }
 
-
 void vendingFinished() {
   updateSwitchInputs();
+
+  // Check WiFi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    LOG_ERROR("NETWORK: WiFi connection lost during finished phase - Status: ", WiFi.status(), " - Previous RSSI: ", WiFi.RSSI());
+    vendingState = 7;  // Network error state
+    return;
+  }
 
   // Check if door has been open too long
   if (timerDoorOpen.read() > DoorOpenSireneDELAY) {
@@ -1053,6 +1182,53 @@ void vendingFinished() {
   }
 }
 
+// Add new network error state
+void vendingNetworkError() {
+  LOG_ERROR("NETWORK: Network error state entered - WiFi Status: ", WiFi.status(), " - RSSI: ", WiFi.RSSI());
+  permission = false;
+  
+  // Stop all timers
+  timerServerTimeout.stop();
+  timerPurchaseTimeout.stop();
+  
+  // Ensure all hardware is in safe state
+  if (carrouselUnlockedState) carrouselLock();
+  if (motorOnState) motorOff();
+  if (sireneOnState) sireneOff();
+  if (itemUnlockedState) {
+    for (int i = 1; i <= 10; i++) {
+      itemLock(i);
+    }
+  }
+  
+  // Show network error screen
+  if (activeScreen != 0) {
+    lv_screen_load(ui_StartUpScreen);
+    activeScreen = 0;
+  }
+  lv_obj_remove_flag(ui_WIFILabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
+  
+  lightOnError();
+  
+  ui_ticker();
+  lv_task_handler();
+
+  // Reset state variables
+  transactionActive = false;
+  requestActive = false;
+  permission = false;
+  
+  // Check if WiFi has been restored
+  if (WiFi.status() == WL_CONNECTED) {
+    LOG_INFO("NETWORK: WiFi connection restored - IP: ", WiFi.localIP().toString(), " - RSSI: ", WiFi.RSSI(), " dBm");
+    lightOffError();
+    lightOn();
+    vendingState = 1;  // Return to idle
+    return;
+  }
+}
 
 void vendingError() {
   LOG_ERROR("ERROR: Error state entered");
@@ -1089,7 +1265,7 @@ void vendingError() {
 }
 
 // _____________FINITE STATE MACHINE_____________
-// States: 0=Sleep, 1=Idle, 2=Turn, 3=Validate, 4=Collect, 5=Finished, 6=Error
+// States: 0=Sleep, 1=Idle, 2=Turn, 3=Validate, 4=Collect, 5=Finished, 6=Error, 7=NetworkError
 
 void vending(int state) {
   switch (state) {
@@ -1100,6 +1276,7 @@ void vending(int state) {
     case 4: vendingCollect(); break;
     case 5: vendingFinished(); break;
     case 6: vendingError(); break;
+    case 7: vendingNetworkError(); break;
     default:
       LOG_ERROR("ERROR: Invalid vending state: ", state);
       vendingState = 6;  // Force error state
@@ -1132,13 +1309,16 @@ void systemSetup() {
   // Initialize Modbus communication
   Serial2.begin(9600, SERIAL_8N1, RX_PIN_SERIAL2, TX_PIN_SERIAL2);
   
+  // Get initial time from RTC (if available)
+  initializeTimeFromRTC();
+  
   // Connect to WiFi
   setupWiFiConnection();
   
-  // Setup time synchronization
+  // Setup time synchronization (this will correct the time)
   setupTimeSync();
   
-  // Setup logging
+  // NOW setup logging with correct time
   setupLogging();
   
   // Setup sensors and audio
@@ -1159,27 +1339,49 @@ void systemSetup() {
   lv_screen_load(ui_MainScreen);
 }
 
-void setupWiFiConnection() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(SSID);
+void initializeTimeFromRTC() {
+  // Get time from M5CoreS3 RTC first
+  auto rtc_time = CoreS3.Rtc.getDateTime();
   
-  WiFi.begin(SSID, PW);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    lv_label_set_text(ui_SetupLabel, "Connecting to WiFi...");
-    ui_ticker();
-    lv_task_handler();
+  // Convert RTC time to system time
+  struct tm rtc_tm = {0};
+  rtc_tm.tm_year = rtc_time.date.year - 1900;  // tm_year is years since 1900
+  rtc_tm.tm_mon = rtc_time.date.month - 1;     // tm_mon is 0-11
+  rtc_tm.tm_mday = rtc_time.date.date;
+  rtc_tm.tm_hour = rtc_time.time.hours;
+  rtc_tm.tm_min = rtc_time.time.minutes;
+  rtc_tm.tm_sec = rtc_time.time.seconds;
+  
+  // Set system time from RTC
+  time_t rtc_timestamp = mktime(&rtc_tm);
+  
+  // Only use RTC time if it seems reasonable (after 2020)
+  if (rtc_timestamp > 1577836800) {  // Jan 1, 2020
+    struct timeval tv = { rtc_timestamp, 0 };
+    settimeofday(&tv, NULL);
+    
+    globalHour = rtc_tm.tm_hour;
+    globalMinute = rtc_tm.tm_min;
+    timeinfo = rtc_tm;
+    
+    Serial.printf("RTC time loaded: %04d-%02d-%02d %02d:%02d:%02d\n", 
+                  rtc_time.date.year, rtc_time.date.month, rtc_time.date.date,
+                  rtc_time.time.hours, rtc_time.time.minutes, rtc_time.time.seconds);
+  } else {
+    Serial.println("RTC time invalid or not set, will sync from NTP");
+    // Set a default time structure for logging filename fallback
+    time_t boot_time = time(nullptr);
+    struct tm * boot_tm = localtime(&boot_time);
+    timeinfo = *boot_tm;
+    globalHour = boot_tm->tm_hour;
+    globalMinute = boot_tm->tm_min;
   }
-  
-  Serial.println("\nWiFi connected");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 void setupTimeSync() {
-  // Set time via NTP for SSL certificate validation
-  configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  // Set time via NTP for SSL certificate validation - Zurich, Switzerland timezone
+  // CET = UTC+1, CEST = UTC+2 (daylight saving time)
+  configTime(1 * 3600, 3600, "ch.pool.ntp.org", "pool.ntp.org", "time.nist.gov");
   
   Serial.print("Waiting for NTP time sync: ");
   now = time(nullptr);
@@ -1190,26 +1392,97 @@ void setupTimeSync() {
   }
   Serial.println();
 
-  gmtime_r(&now, &timeinfo);
-  globalHour = timeinfo.tm_hour;
-  globalMinute = timeinfo.tm_min;
+  // Get local time for Zurich
+  struct tm * timeinfo_local = localtime(&now);
+  globalHour = timeinfo_local->tm_hour;
+  globalMinute = timeinfo_local->tm_min;
   
-  Serial.print("Current time: ");
-  Serial.println(asctime(&timeinfo));
+  Serial.print("Current local time (Zurich): ");
+  Serial.println(asctime(timeinfo_local));
+  
+  // Update global timeinfo for logging
+  timeinfo = *timeinfo_local;
+  
+  // Update RTC with corrected time
+  updateRTCFromNTP(*timeinfo_local);
   
   // Configure secure client
   client.setInsecure();
   client.setTimeout(20000);
+  
+  LOG_INFO("NETWORK: NTP time sync completed - Local time: ", timeinfo.tm_hour, ":", timeinfo.tm_min);
+}
+
+void updateRTCFromNTP(struct tm ntp_time) {
+  // Update M5CoreS3 RTC with NTP-corrected time
+  m5::rtc_datetime_t rtc_datetime;
+  rtc_datetime.date.year = ntp_time.tm_year + 1900;
+  rtc_datetime.date.month = ntp_time.tm_mon + 1;
+  rtc_datetime.date.date = ntp_time.tm_mday;
+  rtc_datetime.date.weekDay = ntp_time.tm_wday;
+  rtc_datetime.time.hours = ntp_time.tm_hour;
+  rtc_datetime.time.minutes = ntp_time.tm_min;
+  rtc_datetime.time.seconds = ntp_time.tm_sec;
+  
+  CoreS3.Rtc.setDateTime(rtc_datetime);
+  Serial.println("RTC updated with NTP time");
 }
 
 void setupLogging() {
-  // Create log filename based on current time
-  String filename = "/" + String(timeinfo.tm_yday) + "_" + 
-                   String(timeinfo.tm_hour) + "_" + 
-                   String(timeinfo.tm_min) + ".txt";
+  // Create log filename with proper date and time format: YYYY-MM-DD_HH-MM-SS.txt
+  char filename[32];
+  snprintf(filename, sizeof(filename), "/%04d-%02d-%02d_%02d-%02d-%02d.txt", 
+           timeinfo.tm_year + 1900, 
+           timeinfo.tm_mon + 1, 
+           timeinfo.tm_mday, 
+           timeinfo.tm_hour, 
+           timeinfo.tm_min,
+           timeinfo.tm_sec);
   
   LOG_ATTACH_FS_AUTO(SD, filename, FILE_WRITE);
-  LOG_INFO("LOGGING: Debug log initialized");
+  LOG_INFO("LOGGING: Debug log initialized - File: ", filename);
+}
+
+void setupWiFiConnection() {
+  LOG_INFO("NETWORK: Starting WiFi connection to SSID: ", SSID);
+  Serial.print("Connecting to WiFi: ");
+  Serial.println(SSID);
+  
+  WiFi.begin(SSID, PW);
+  int connectionAttempts = 0;
+  const int maxAttempts = 360;  // 3 minutes (360 * 500ms = 180 seconds)
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    connectionAttempts++;
+    
+    // Update UI every 10 attempts (5 seconds)
+    if (connectionAttempts % 10 == 0) {
+      LOG_DEBUG("NETWORK: WiFi connection attempt ", connectionAttempts, "/", maxAttempts, " - Status: ", WiFi.status());
+      char statusText[50];
+      snprintf(statusText, sizeof(statusText), "Connecting WiFi... %d/%d", connectionAttempts, maxAttempts);
+      lv_label_set_text(ui_SetupLabel, statusText);
+      ui_ticker();
+      lv_task_handler();
+    }
+    
+    // Restart after 3 minutes of failed attempts
+    if (connectionAttempts >= maxAttempts) {
+      LOG_ERROR("NETWORK: WiFi connection failed after 3 minutes (", maxAttempts, " attempts) - Status: ", WiFi.status(), " - Restarting system");
+      lv_label_set_text(ui_SetupLabel, "WiFi failed - Restarting...");
+      ui_ticker();
+      lv_task_handler();
+      delay(2000);  // Show message for 2 seconds
+      ESP.restart();
+    }
+  }
+  
+  // WiFi connected successfully
+  Serial.println("\nWiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  LOG_INFO("NETWORK: WiFi connected successfully after ", connectionAttempts, " attempts - IP: ", WiFi.localIP().toString(), " - RSSI: ", WiFi.RSSI(), " dBm");
 }
 
 void setupSensorsAndAudio() {
@@ -1237,9 +1510,7 @@ void setupSensorsAndAudio() {
 
 void initializeHardwareState() {
   // Turn off unused relays
-  //sendModbusClose(Relay15_CH);
-  //sendModbusClose(Relay16_CH);
-  LOG_TRACE("SETUP: Unused relays disabled");
+  // LOG_TRACE("SETUP: Unused relays disabled");
 }
 
 void playStartupSequence() {
@@ -1289,57 +1560,83 @@ void mainLoop() {
 
 void checkWiFiConnection() {
   static int wifiCounter = 0;
+  static int lastWiFiStatus = -1;
+  static int lastRSSI = 0;
   
-  if (WiFi.status() != WL_CONNECTED) {
-    if (!wifiError) {
-      LOG_ERROR("ERROR: WiFi connection lost at ", globalHour, ":", globalMinute);
-      lightOnError();
-      
-      // Show WiFi error on startup screen
-      if (activeScreen != 0) {
-        lv_screen_load(ui_StartUpScreen);
-        activeScreen = 0;
+  int currentWiFiStatus = WiFi.status();
+  int currentRSSI = WiFi.RSSI();
+  
+  if (currentWiFiStatus != WL_CONNECTED) {
+    // Only handle WiFi errors if we're not already in network error state
+    if (vendingState != 7) {
+      if (!wifiError) {
+        LOG_ERROR("NETWORK: WiFi connection lost - Time: ", globalHour, ":", globalMinute, " - Status: ", currentWiFiStatus, " - Last RSSI: ", lastRSSI, " dBm");
+        wifiError = true;
+        // Start the 60s window on first detection
+        wifiErrorStartMillis = millis();
+        lastReconnectAttemptMillis = 0;
       }
-      lv_obj_remove_flag(ui_WIFILabel, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(ui_SetupLabel, LV_OBJ_FLAG_HIDDEN);
-      lv_obj_add_flag(ui_StartUpErrorLabel, LV_OBJ_FLAG_HIDDEN);
-      ui_ticker();
-      lv_task_handler();
-      
-      wifiError = true;
+      vendingState = 7;
     }
-    
-    wifiCounter++;
-    if (wifiCounter > WIFI_RESTART_COUNTER) {
-      LOG_ERROR("ERROR: WiFi connection failed - restarting system");
+
+    // Keep trying to reconnect while showing the network error screen
+    if (lastReconnectAttemptMillis == 0 || (millis() - lastReconnectAttemptMillis) >= 5000) {
+      LOG_DEBUG("NETWORK: Attempting WiFi.reconnect()");
+      WiFi.reconnect();
+      lastReconnectAttemptMillis = millis();
+    }
+
+    // Restart if we couldn't reconnect for 60 seconds
+    if (wifiErrorStartMillis != 0 && (millis() - wifiErrorStartMillis) >= 60000UL) {
+      LOG_ERROR("NETWORK: No reconnection within 60s - Restarting system");
       ESP.restart();
     }
-    
-    delay(1000);  // Wait before next check
+
+    // Periodic debug output
+    wifiCounter++;
+    if (wifiCounter % 20 == 0) {
+      LOG_DEBUG("NETWORK: WiFi still down (attempts: ", wifiCounter, ") - Status: ", currentWiFiStatus);
+    }
+
+    delay(100);  // Reduced delay for better responsiveness
     return;
   }
 
   // WiFi connection is good - check if we were previously in error state
   if (wifiError) {
-    LOG_INFO("NETWORK: WiFi connection re-established at ", globalHour, ":", globalMinute);
+    LOG_INFO("NETWORK: WiFi connection re-established - Time: ", globalHour, ":", globalMinute, " - IP: ", WiFi.localIP().toString(), " - RSSI: ", currentRSSI, " dBm");
     
-    if (activeScreen != 1) {
-      lv_screen_load(ui_MainScreen);
-      activeScreen = 1;
+    // Only reset UI if we're in network error state
+    if (vendingState == 7) {
+      vendingState = 1;  // Return to idle
+      if (activeScreen != 1) {
+        lv_screen_load(ui_MainScreen);
+        activeScreen = 1;
+      }
+      ui_ticker();
+      lv_task_handler();
     }
-    ui_ticker();
-    lv_task_handler();
     
     wifiError = false;
     wifiCounter = 0;  // Reset counter on successful reconnection
+    wifiErrorStartMillis = 0;
+    lastReconnectAttemptMillis = 0;
   }
+  
+  // Log significant RSSI changes
+  if (abs(currentRSSI - lastRSSI) > 10 && currentRSSI != 0) {
+    LOG_DEBUG("NETWORK: RSSI change detected - Previous: ", lastRSSI, " dBm - Current: ", currentRSSI, " dBm");
+  }
+  
+  lastWiFiStatus = currentWiFiStatus;
+  lastRSSI = currentRSSI;
 }
 
 void updateTimeTracking() {
   now = time(nullptr);
-  gmtime_r(&now, &timeinfo);
-  globalHour = timeinfo.tm_hour;
-  globalMinute = timeinfo.tm_min;
+  struct tm * timeinfo_local = localtime(&now);  // Use local time for Zurich
+  globalHour = timeinfo_local->tm_hour;
+  globalMinute = timeinfo_local->tm_min;
 }
 
 // _____________ARDUINO MAIN FUNCTIONS_____________

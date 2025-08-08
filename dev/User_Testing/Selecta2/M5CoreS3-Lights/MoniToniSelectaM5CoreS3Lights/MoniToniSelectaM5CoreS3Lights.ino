@@ -69,8 +69,8 @@
 #define Item_8_Light_Green 25 //Relay 24
 #define Item_9_Light_Green 24 //Relay 25
 #define Item_10_Light_Green 23 //Relay 26
-#define Red_Light_CH 22 //Relay 27
-#define White_Light_CH 21 //Relay 28
+#define Red_Light_CH 17 //Relay 27
+#define White_Light_CH 18 //Relay 28
 
 
 #define Blue_Light_CH 19  // 
@@ -1186,7 +1186,8 @@ void vendingIdle() {
       itemLock(i);
     }
   }
-  
+  lightOn();
+  lightOffError(); 
 
   if (buttonTurnPushedState) {
     LOG_TRACE("LOGIC: Turn Button Pushed");
@@ -1407,6 +1408,7 @@ void vendingCollect(){
       ui_ticker();
       lv_task_handler(); //_GUI ui handler
       LOG_DEBUG("HARDWARE: Turn on LED for item");
+      lightOff();
       lightItemControl(item, 1);
       return;
     }
@@ -1445,6 +1447,7 @@ void vendingCollect(){
       itemLock(item);
     }
     lightItemControl(item, 0);
+    lightOn();
     timerServerTimeout.start();
     LOG_DEBUG("TIMER: Server Timer started");
     LOG_DEBUG("HARDWARE: Change Item LED to static (in case blinking for open item)");
@@ -1891,6 +1894,7 @@ void mainLoop() {
   if (wifiError) {
     LOG_ERROR("ERROR: WIFI Connection re-established ", globalHour, ":", globalMinute);
     //_GUI MainScreen
+    lightOffError();
     if (activeScreen != 1) {
       lv_screen_load(ui_MainScreen);
       activeScreen = 1;
