@@ -83,8 +83,8 @@
 #define SleepDELAY 120000
 #define debounceTurnButton 1
 #define debounceOpenButton 1
-#define debounceDoor 10
-#define openDoorDELAY 500
+#define debounceDoor 5
+#define openDoorDELAY 700
 #define PurchaseTimeoutDELAY 60000
 #define DoorOpenSireneDELAY 10000
 #define ServerTimeout 3000

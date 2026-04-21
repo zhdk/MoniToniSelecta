@@ -294,6 +294,7 @@ void lightOff() {
 }
 
 void lightOnError() {
+  lightOff(); // Turn off white light
   sendModbusOpen(Red_Light_CH);
   errorOnState = true;
   LOG_TRACE("HARDWARE: Error light on");
@@ -305,7 +306,6 @@ void lightOffError() {
   LOG_TRACE("HARDWARE: Error light off");
 }
 
-// ===== ITEM LIGHTING CONTROL =====
 void lightItemControl(int itemNum, bool state) {
   // Array mapping item numbers to relay channels for cleaner code
   const int itemLightChannels[] = {0, // index 0 unused (items start at 1)
@@ -319,6 +319,7 @@ void lightItemControl(int itemNum, bool state) {
   }
   
   if (state) {
+    lightOff(); // Turn off white light
     sendModbusOpen(itemLightChannels[itemNum]);
     LOG_TRACE("HARDWARE: Item ", itemNum, " light green on");
   } else {
@@ -968,70 +969,64 @@ void vendingValidate() {
   if (WiFi.status() != WL_CONNECTED) {
     LOG_ERROR("NETWORK: WiFi connection lost during validation - Status: ", WiFi.status(), " - Previous RSSI: ", WiFi.RSSI());
     timerServerTimeout.stop();
-    vendingState = 7;  // Network error state
+    transactionActive = false; // Reset variables
+    requestActive = false;     // Reset variables
+    vendingState = 7;          // Network error state
     return;
   }
 
   // Check for server timeout
   if (timerServerTimeout.read() > ServerTimeout) {
-    // Show only network error on timeout (not denied)
     showServerErrorUI();
     timerServerTimeout.stop();
-    transactionActive = false;
-    requestActive = false;
-    vendingState = 6;  // Error
+    transactionActive = false; // Reset variables
+    requestActive = false;     // Reset variables
+    vendingState = 6;          // Error
     LOG_INFO("STATE: Server timeout - switching to Error");
     return;
   }
 
   // Start request if not active yet
   if (!requestActive && !transactionActive) {
-    // Show validation in progress
     setValidationScreenState(true, false, false, false, false, false);
-
     LOG_DEBUG("NETWORK: Starting permission request");
     bool ok = permissionRequest();
     requestActive = true;
 
     // Handle result immediately to avoid showing both screens
     if (!ok) {
-      // If WiFi dropped during request, NetworkError state is already set
       if (WiFi.status() != WL_CONNECTED) {
-        return;
+        return; // Already handled in network error state
       }
-      // If any error occurred while connected -> show only network error screen
       if (permissionRequestHadError) {
         timerServerTimeout.stop();
-        transactionActive = false;
-        requestActive = false;
+        transactionActive = false; // Reset variables
+        requestActive = false;     // Reset variables
         showServerErrorUI();
-        vendingState = 6;  // Error
+        vendingState = 6;          // Error
         LOG_INFO("STATE: Permission request error - switching to Error");
         return;
       }
-      // Valid response but denied -> show only denied screen
+      // Valid response but denied
       showDeniedUI();
       timerServerTimeout.stop();
-      transactionActive = false;
-      requestActive = false;
-      // Return to Idle
+      transactionActive = false; // Reset variables
+      requestActive = false;     // Reset variables
       timerSleep.stop();
       timerSleep.start();
-      vendingState = 1;
+      vendingState = 1;          // Return to Idle
       lv_screen_load(ui_MainScreen);
       return;
     }
-
-    // If ok -> permission granted; proceed below on next iteration
-    return;
+    return; // Permission granted; proceed on next iteration
   }
 
   // Permission granted - proceed to collect
   if (transactionActive) {
     setValidationScreenState(false, true, false, false, true, false);
     timerServerTimeout.stop();
-    requestActive = false;
-    vendingState = 4;  // Collect
+    requestActive = false; // Reset variables
+    vendingState = 4;      // Collect
     LOG_DEBUG("STATE: Permission granted - switching to Collect");
   }
 }
